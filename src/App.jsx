@@ -17,7 +17,6 @@ import StudentMissionDetail from './pages/StudentMissionDetail.jsx';
 import StudentDashboardHub from './pages/StudentDashboardHub.jsx';
 import StudentProjectDetail from './pages/StudentProjectDetail.jsx';
 import StudentApplicationPage from './pages/StudentApplicationPage.jsx';
-import PlaceholderPage from './pages/PlaceholderPage.jsx';
 import ProjectDetailPage from './pages/ProjectDetailPage.jsx';
 import ProjectsPage from './pages/ProjectsPage.jsx';
 import { homepageCopy } from './data/homepage.js';
@@ -92,9 +91,14 @@ function MainPage() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut();
-    setSession(null);
-    setAccountType(null);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Failed to sign out.', error);
+    } finally {
+      setSession(null);
+      setAccountType(null);
+    }
   };
 
   const openAuthModal = (notice = '') => {
@@ -167,13 +171,8 @@ export default function App() {
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:id" element={<ProjectDetailPage />} />
         <Route path="/startup" element={<Navigate to="/dashboard/company" replace />} />
-        <Route
-          path="/login"
-          element={
-            <PlaceholderPage title="로그인" description="로그인 화면은 추후 구현 예정입니다." />
-          }
-        />
-        <Route path="/clubs" element={<StudentApplicationPage />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/clubs" element={<Navigate to="/student/apply" replace />} />
         <Route path="/student/apply" element={<StudentApplicationPage />} />
         <Route path="/clubs/dashboard" element={<Navigate to="/dashboard/student" replace />} />
         <Route path="/dashboard/company" element={<CompanyDashboard />} />

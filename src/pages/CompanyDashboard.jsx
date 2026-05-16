@@ -50,10 +50,15 @@ export default function CompanyDashboard() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut();
-    setSession(null);
-    setAccountType(null);
-    navigate('/');
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Failed to sign out.', error);
+    } finally {
+      setSession(null);
+      setAccountType(null);
+      navigate('/');
+    }
   };
 
   const companyHeaderCopy = {
