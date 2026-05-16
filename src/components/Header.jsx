@@ -9,6 +9,7 @@ export default function Header({
   onLogoutClick,
   onStartupClick,
   extraHeaderActions = null,
+  hideDashboardButton = false,
 }) {
   const navigationItems = isAuthenticated
     ? [...copy.navigation, ...copy.authenticatedNavigation]
@@ -36,8 +37,8 @@ export default function Header({
           <span className="header-user">{userEmail}</span>
         ) : null}
 
-        {isAuthenticated ? (
-          <Link className="button button-secondary" to={accountType === 'startup' ? '/dashboard/company' : '/dashboard/student'}>
+        {isAuthenticated && !hideDashboardButton && accountType !== 'startup' ? (
+          <Link className="button button-secondary" to="/dashboard/student">
             {copy.auth.dashboardLabel}
           </Link>
         ) : null}

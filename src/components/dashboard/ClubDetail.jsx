@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../Header.jsx";
 import { homepageCopy } from "../../data/homepage.js";
+import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from "../../services/auth.js";
 import {
   clubColors,
   statusLabel,
@@ -57,6 +58,9 @@ export default function ClubDetail() {
     typeof window !== "undefined" ? window.innerWidth <= LAYOUT_BREAKPOINT_PX : false,
   );
 
+  const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
+
   useEffect(() => {
     function onResize() {
       setIsNarrow(window.innerWidth <= LAYOUT_BREAKPOINT_PX);
@@ -66,11 +70,49 @@ export default function ClubDetail() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSession() {
+      const result = await getCurrentSession();
+      if (isMounted) {
+        setSession(result.session);
+        setAccountType(await getAccountType(result.session));
+      }
+    }
+    loadSession();
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
+      setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
+    });
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    setSession(null);
+    setAccountType(null);
+    navigate('/');
+  };
+
+  const companyHeaderCopy = {
+    ...homepageCopy,
+    headerActions: homepageCopy.headerActions.filter(action => action.type !== 'startup')
+  };
+
   if (!bundle) {
     return (
       <div className="dashboard-page">
         <div className="dashboard-header-shell">
-          <Header copy={homepageCopy} isAuthenticated={false} />
+          <Header 
+            copy={companyHeaderCopy} 
+            isAuthenticated={Boolean(session)} 
+            userEmail={session?.user?.email}
+            accountType={accountType}
+            onLogoutClick={handleLogout}
+          />
         </div>
         <main className="section-wrap dashboard-main dashboard-body-muted">동아리를 찾을 수 없습니다.</main>
       </div>
@@ -91,7 +133,14 @@ export default function ClubDetail() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-header-shell">
-        <Header copy={homepageCopy} isAuthenticated={false} />
+        <Header 
+          copy={companyHeaderCopy} 
+          isAuthenticated={Boolean(session)} 
+          userEmail={session?.user?.email}
+          accountType={accountType}
+          onLogoutClick={handleLogout}
+          hideDashboardButton={true}
+        />
       </div>
 
       <main className="section-wrap dashboard-main">
