@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { homepageCopy } from '../data/homepage.js';
@@ -22,9 +22,35 @@ export default function StudentDashboardHub() {
     description: '',
   });
 
+  const [projects, setProjects] = useState([]);
+
+  useEffect(() => {
+    const savedClub = localStorage.getItem('campusBridge.clubInfo');
+    if (savedClub) {
+      try {
+        setClubInfo(JSON.parse(savedClub));
+      } catch (e) {
+        console.error('Failed to parse club info', e);
+      }
+    }
+
+    const savedProjects = localStorage.getItem('campusBridge.studentProjects');
+    if (savedProjects) {
+      try {
+        setProjects(JSON.parse(savedProjects));
+      } catch (e) {
+        console.error('Failed to parse projects', e);
+      }
+    } else {
+      setProjects(studentProjectsList);
+      localStorage.setItem('campusBridge.studentProjects', JSON.stringify(studentProjectsList));
+    }
+  }, []);
+
   const handleClubSubmit = (e) => {
     e.preventDefault();
     setClubInfo(clubForm);
+    localStorage.setItem('campusBridge.clubInfo', JSON.stringify(clubForm));
     setIsEditingClub(false);
   };
 
@@ -103,7 +129,7 @@ export default function StudentDashboardHub() {
               </div>
               
               <div className="hub-project-list">
-                {studentProjectsList.map(project => (
+                {projects.map(project => (
                   <Link key={project.id} to={`/dashboard/student/project/${project.id}`} className="hub-project-card">
                     <div className="hub-project-top">
                       <span className="hub-project-company">{project.companyName}</span>
