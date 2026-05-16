@@ -87,27 +87,35 @@ export default function StudentDashboardHub() {
             )}
           </section>
 
-          <section className="hub-panel projects-panel">
-            <div className="hub-panel-header">
-              <h2>진행 중인 프로젝트</h2>
-            </div>
-            
-            <div className="hub-project-list">
-              {studentProjectsList.map(project => (
-                <Link key={project.id} to={`/dashboard/student/project/${project.id}`} className="hub-project-card">
-                  <div className="hub-project-top">
-                    <span className="hub-project-company">{project.companyName}</span>
-                    <span className={`status-pill status-${project.status === '진행중' ? '신규' : '마감임박'}`}>{project.status}</span>
-                  </div>
-                  <h3>{project.campaignName}</h3>
-                  <div className="hub-project-bottom">
-                    <span>마감일: {project.dueDate}</span>
-                    <span className="hub-project-arrow">상세 보기 →</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
+          {clubInfo ? (
+            <section className="hub-panel projects-panel">
+              <div className="hub-panel-header">
+                <h2>진행 중인 프로젝트</h2>
+              </div>
+              
+              <div className="hub-project-list">
+                {studentProjectsList.map(project => (
+                  <Link key={project.id} to={`/dashboard/student/project/${project.id}`} className="hub-project-card">
+                    <div className="hub-project-top">
+                      <span className="hub-project-company">{project.companyName}</span>
+                      <span className={`status-pill status-${project.status === '진행중' ? '신규' : '마감임박'}`}>{project.status}</span>
+                    </div>
+                    <h3>{project.campaignName}</h3>
+                    <div className="hub-project-bottom">
+                      <span>마감일: {project.dueDate}</span>
+                      <span className="hub-project-arrow">상세 보기 →</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : (
+            <section className="hub-panel projects-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '300px', backgroundColor: 'var(--slate-50)', borderStyle: 'dashed' }}>
+              <span style={{ fontSize: '32px', marginBottom: '16px' }}>🔒</span>
+              <h2 style={{ fontSize: '20px', color: 'var(--slate-900)', marginBottom: '8px' }}>프로젝트 목록이 잠겨있습니다</h2>
+              <p style={{ color: 'var(--slate-500)', fontSize: '15px' }}>위에서 동아리/학회 정보를 먼저 등록하셔야<br/>진행 중인 프로젝트를 확인하고 관리할 수 있습니다.</p>
+            </section>
+          )}
 
         </div>
       </main>
