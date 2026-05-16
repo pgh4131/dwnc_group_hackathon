@@ -1,22 +1,16 @@
 export const homepageCopy = {
   serviceName: 'Campus Bridge',
-  navigation: [
-    { label: '공고 둘러보기', href: '/projects' },
-    { label: '스타트업용', href: '/startup' },
-    { label: '동아리/학회용', href: '/clubs' },
-  ],
+  navigation: [],
+  authenticatedNavigation: [{ label: '동아리/학회용', href: '/clubs' }],
   headerActions: [
-    { label: '공고 등록하기', href: '/projects/new', variant: 'primary' },
     { label: '로그인', href: '/login', variant: 'secondary' },
+    { label: '스타트업용', href: '/startup', variant: 'primary' },
   ],
   hero: {
     eyebrow: 'Campus Marketing Platform',
     title: '스타트업과 대학 동아리/학회를 연결하는 캠퍼스 마케팅 플랫폼',
     description: '공고 등록부터 동아리 매칭, 미션 운영, 성과 리포트까지 한 번에 관리하세요.',
-    actions: [
-      { label: '공고 둘러보기', href: '/projects', variant: 'primary' },
-      { label: '스타트업으로 시작하기', href: '/startup', variant: 'secondary' },
-    ],
+    actions: [{ label: '스타트업으로 시작하기', href: '/startup', variant: 'primary' }],
     stats: [
       { value: '4단계', label: '운영 프로세스' },
       { value: '6개', label: '샘플 캠페인' },
@@ -66,8 +60,8 @@ export const homepageCopy = {
       audience: '스타트업용',
       title: '캠퍼스 마케팅을 빠르게 시작하세요',
       description: '검증된 학생 조직과 연결해 대학생 타깃 캠페인을 작게 시작하고 명확하게 관리하세요.',
-      buttonLabel: '공고 등록하기',
-      href: '/projects/new',
+      buttonLabel: '스타트업용으로 이동',
+      href: '/startup',
     },
     {
       audience: '동아리/학회용',
@@ -80,6 +74,10 @@ export const homepageCopy = {
   footer: {
     description:
       'Campus Bridge는 스타트업과 대학 동아리/학회를 연결해 캠퍼스 마케팅 프로젝트를 운영하는 해커톤 MVP입니다.',
+  },
+  projects: {
+    moreLabel: '더보기',
+    moreHref: '/projects',
   },
 };
 

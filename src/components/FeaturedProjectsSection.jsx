@@ -1,13 +1,13 @@
 import SectionHeading from './SectionHeading.jsx';
 
-export default function FeaturedProjectsSection({ projects }) {
+export default function FeaturedProjectsSection({ projects, copy }) {
   return (
     <section className="featured-section section-spacing">
       <div className="section-wrap">
         <SectionHeading
           eyebrow="Featured Projects"
-          title="지금 확인할 수 있는 캠퍼스 프로젝트"
-          description="mock data로 구성된 공고 카드입니다. 이후 Supabase 또는 API 응답으로 교체하기 쉽게 분리되어 있습니다."
+          title="모집 중인 캠퍼스 프로젝트"
+          description="메인페이지에서 바로 공고를 확인하고, 관심 있는 프로젝트는 상세 페이지로 이동할 수 있습니다."
         />
         <div className="project-grid">
           {projects.map((project) => (
@@ -34,6 +34,11 @@ export default function FeaturedProjectsSection({ projects }) {
               </dl>
             </a>
           ))}
+        </div>
+        <div className="project-more">
+          <a className="button button-secondary button-large" href={copy.moreHref}>
+            {copy.moreLabel}
+          </a>
         </div>
       </div>
     </section>

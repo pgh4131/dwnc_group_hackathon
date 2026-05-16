@@ -10,11 +10,11 @@ import { featuredProjects, homepageCopy } from './data/homepage.js';
 export default function App() {
   return (
     <div className="app-shell">
-      <Header copy={homepageCopy} />
+      <Header copy={homepageCopy} isAuthenticated={false} />
       <main>
         <HeroSection copy={homepageCopy.hero} />
+        <FeaturedProjectsSection projects={featuredProjects} copy={homepageCopy.projects} />
         <ValueSection items={homepageCopy.values} />
-        <FeaturedProjectsSection projects={featuredProjects} />
         <HowItWorksSection steps={homepageCopy.steps} />
         <UserTypeCTASection cards={homepageCopy.userCtas} />
       </main>

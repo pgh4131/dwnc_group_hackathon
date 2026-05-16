@@ -348,6 +348,12 @@ a {
   gap: 18px;
 }
 
+.project-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
 .project-card {
   display: flex;
   min-height: 292px;
