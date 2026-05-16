@@ -1,11 +1,24 @@
 import { Link } from 'react-router-dom';
 
 export default function HeroSection({ copy, onStartupClick }) {
+  const shouldUseFixedTitleBreak =
+    copy.title === '스타트업과 대학 동아리/학회를 연결하는 캠퍼스 마케팅 플랫폼';
+
   return (
     <section className="hero-section section-wrap">
       <div className="hero-copy">
         {copy.eyebrow ? <p className="eyebrow">{copy.eyebrow}</p> : null}
-        <h1>{copy.title}</h1>
+        <h1>
+          {shouldUseFixedTitleBreak ? (
+            <>
+              스타트업과 대학 동아리/학회를
+              <br />
+              연결하는 캠퍼스 마케팅 플랫폼
+            </>
+          ) : (
+            copy.title
+          )}
+        </h1>
         <p className="hero-description">{copy.description}</p>
         <div className="hero-actions">
           {copy.actions.map((action) => {
