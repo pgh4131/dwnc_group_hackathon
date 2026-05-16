@@ -125,7 +125,7 @@ export const feedbackMessages = [
     id: "fb-1",
     missionId: "m-ugc",
     missionTitle: "숏폼 콘텐츠 6건 제작",
-    sender: "런치플리 브랜드팀",
+    sender: "Fassto 브랜드팀",
     channel: "mail",
     receivedAt: "오늘 10:12",
     isRead: false,
@@ -136,7 +136,7 @@ export const feedbackMessages = [
     id: "fb-2",
     missionId: "m-campus",
     missionTitle: "캠퍼스 부스 바이럴",
-    sender: "런치플리 PM",
+    sender: "Relate PM",
     channel: "messenger",
     receivedAt: "어제 17:40",
     isRead: true,
@@ -147,7 +147,7 @@ export const feedbackMessages = [
     id: "fb-3",
     missionId: "m-report",
     missionTitle: "최종 성과 리포트",
-    sender: "런치플리 데이터팀",
+    sender: "Flex 데이터팀",
     channel: "mail",
     receivedAt: "5월 14일",
     isRead: true,
@@ -190,3 +190,27 @@ export const metricSeries = [
 
 export const peerAverageScore = 75;
 export const myClubScore = 88;
+
+export const studentProjectsList = [
+  {
+    id: 'p1',
+    companyName: 'Fassto',
+    campaignName: '물류 서비스 숏폼 바이럴',
+    status: '진행중',
+    dueDate: '2026.06.05',
+  },
+  {
+    id: 'p2',
+    companyName: 'Relate',
+    campaignName: 'CRM SaaS 캠퍼스 리서치',
+    status: '대기중',
+    dueDate: '2026.07.15',
+  },
+  {
+    id: 'p3',
+    companyName: 'Flex',
+    campaignName: 'HR 브랜드 앰배서더',
+    status: '완료됨',
+    dueDate: '2026.04.30',
+  }
+];

@@ -14,6 +14,26 @@ export async function getCurrentSession() {
   };
 }
 
+export async function getAccountType(session) {
+  if (!session?.user) {
+    return null;
+  }
+
+  const metadataAccountType = session.user.user_metadata?.account_type;
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('account_type')
+    .eq('id', session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    return metadataAccountType || null;
+  }
+
+  return data?.account_type || metadataAccountType || null;
+}
+
 export function subscribeToAuthChanges(callback) {
   if (!isSupabaseConfigured) {
     return () => {};
@@ -38,9 +58,17 @@ export async function signInWithEmail({ email, password }) {
   return data.session;
 }
 
-export async function signUpWithEmail({ email, password }) {
+export async function signUpWithEmail({ email, password, accountType }) {
   const supabase = createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        account_type: accountType,
+      },
+    },
+  });
 
   if (error) {
     throw new Error(error.message);

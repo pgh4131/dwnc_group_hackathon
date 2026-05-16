@@ -2,10 +2,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import { homepageCopy } from "../data/homepage.js";
-import {
-  studentMissions,
-  studentProfile,
-} from "../data/studentDashboardData.js";
+import { studentMissions, studentProfile } from "../data/studentDashboardData.js";
 
 const studentHeaderCopy = {
   ...homepageCopy,
@@ -36,11 +33,11 @@ export default function StudentDashboard() {
     };
   }, []);
 
+  const uniqueCompanyCount = new Set(studentMissions.map((mission) => mission.companyName)).size;
+
   function openMission(missionId) {
     navigate(`/dashboard/student/mission/${missionId}`);
   }
-
-  const uniqueCompanyCount = new Set(studentMissions.map((mission) => mission.companyName)).size;
 
   return (
     <div className="dashboard-page student-dashboard-page">
@@ -92,7 +89,9 @@ export default function StudentDashboard() {
                 </div>
                 <div className="student-mission-overview-body">
                   <div className="student-mission-overview-top">
-                    <span>{mission.companyName} · {mission.companyIndustry}</span>
+                    <span>
+                      {mission.companyName} · {mission.companyIndustry}
+                    </span>
                     <span className={`student-status-badge student-status-badge--${status.tone}`}>{status.label}</span>
                   </div>
                   <h2>{mission.title}</h2>

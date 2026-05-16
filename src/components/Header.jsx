@@ -4,8 +4,10 @@ export default function Header({
   copy,
   isAuthenticated = false,
   userEmail = '',
+  accountType = null,
   onLoginClick,
   onLogoutClick,
+  onStartupClick,
   extraHeaderActions = null,
 }) {
   const navigationItems = isAuthenticated
@@ -27,12 +29,19 @@ export default function Header({
             </Link>
           ))}
         </nav>
-      ) : (
-        <div className="header-nav-spacer" aria-hidden="true" />
-      )}
+      ) : null}
 
       <div className="header-actions">
-        {isAuthenticated && userEmail ? <span className="header-user">{userEmail}</span> : null}
+        {isAuthenticated && userEmail ? (
+          <span className="header-user">{userEmail}</span>
+        ) : null}
+
+        {isAuthenticated ? (
+          <Link className="button button-secondary" to={accountType === 'startup' ? '/dashboard/company' : '/dashboard/student'}>
+            {copy.auth.dashboardLabel}
+          </Link>
+        ) : null}
+
         {copy.headerActions.map((action) => {
           if (action.type === 'auth') {
             return isAuthenticated ? (
@@ -56,12 +65,35 @@ export default function Header({
             );
           }
 
+          if (action.type === 'startup') {
+            return (
+              <button
+                key={action.type}
+                className={`button button-${action.variant}`}
+                type="button"
+                onClick={onStartupClick}
+                aria-label={
+                  accountType === 'startup'
+                    ? action.label
+                    : copy.auth.startupOnlyMessage
+                }
+              >
+                {action.label}
+              </button>
+            );
+          }
+
           return (
-            <Link key={action.href} className={`button button-${action.variant}`} to={action.href}>
+            <Link
+              key={action.href}
+              className={`button button-${action.variant}`}
+              to={action.href}
+            >
               {action.label}
             </Link>
           );
         })}
+
         {extraHeaderActions}
       </div>
     </header>
