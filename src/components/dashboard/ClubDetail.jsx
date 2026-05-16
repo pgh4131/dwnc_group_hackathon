@@ -5,7 +5,7 @@ import { homepageCopy } from "../../data/homepage.js";
 import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from "../../services/auth.js";
 import { fetchCompanyByOwner, fetchClubDashboardBundle } from "../../services/companies.js";
 import { assignMissionToMatch, approveMissionDeliverable } from "../../services/missions.js";
-import MetricCharts from "./MetricCharts";
+import StudentMetricCharts from "../studentDashboard/StudentMetricCharts.jsx";
 import SolutionPanel from "./SolutionPanel";
 
 const LAYOUT_BREAKPOINT_PX = 768;
@@ -40,6 +40,19 @@ function trackPaymentEvent(eventName) {
 
 function isPaymentFormComplete(values) {
   return values.cardNumber.trim() && values.expiry.trim() && values.cvc.trim();
+}
+
+function mapCompanyMetricsToStudentRows(rows = []) {
+  return rows.map((row) => ({
+    date: row.week,
+    impressions: row.노출수,
+    clicks: row.클릭수,
+    ctr: row.CTR,
+    cpc: row.CPC,
+    engagement: row["Eng.Rate"],
+    conversion: row.전환율,
+    avgScore: row.avgScore ?? 0,
+  }));
 }
 
 export default function ClubDetail() {
@@ -213,6 +226,13 @@ export default function ClubDetail() {
     description: t.description || "",
   }));
   const canSubmitPayment = Boolean(isPaymentFormComplete(paymentValues)) && !isPaymentProcessing;
+  const metricRows = mapCompanyMetricsToStudentRows(bundle.chartRows).map((row) => ({
+    ...row,
+    avgScore: bundle.score,
+  }));
+  const paidReportCardStyle = isReportUnlocked && !isNarrow
+    ? { gridColumn: "1 / -1" }
+    : undefined;
 
   return (
     <div className="dashboard-page">
@@ -240,17 +260,22 @@ export default function ClubDetail() {
         </div>
 
         <div style={gridStyle}>
-          <div className="dashboard-card paid-report-card">
+          <div className="dashboard-card paid-report-card" style={paidReportCardStyle}>
             <p className="dashboard-section-label">마케팅 지표 (mission_metrics)</p>
             <div className={`paid-report-content ${isReportUnlocked ? "" : "paid-report-content--locked"}`}>
-              <MetricCharts chartRows={bundle.chartRows} scoreData={bundle.viralVsPeerChart} score={bundle.score} />
+              <StudentMetricCharts
+                rows={metricRows}
+                myScore={bundle.score}
+                peerScore={bundle.avgScore}
+                embedded
+              />
             </div>
             {!isReportUnlocked ? (
               <div className="paid-report-overlay" aria-label="유료 성과 리포트 안내">
                 <span className="paid-report-badge">Premium Report</span>
                 <h2>유료 구독 시 열람 가능</h2>
                 <p>
-                  CTR, CPC, 전환율, 참여 평균 대비 스코어까지 캠페인 의사결정에 필요한 성과 리포트를 확인하세요.
+                  개인 계정에서 보는 것과 같은 노출, CTR, CPC, 참여율, 전환율 차트를 기업 리포트에서도 확인하세요.
                 </p>
                 <button type="button" className="button button-primary paid-report-cta" onClick={openPaymentModal}>
                   결제하기
