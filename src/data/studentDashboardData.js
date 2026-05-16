@@ -181,3 +181,27 @@ export const metricSeries = [
 
 export const peerAverageScore = 75;
 export const myClubScore = 88;
+
+export const studentProjectsList = [
+  {
+    id: 'p1',
+    companyName: '런치플리',
+    campaignName: '캠퍼스 런치 챌린지',
+    status: '진행중',
+    dueDate: '2026.06.05',
+  },
+  {
+    id: 'p2',
+    companyName: '네이버',
+    campaignName: '클립 크리에이터 3기',
+    status: '대기중',
+    dueDate: '2026.07.15',
+  },
+  {
+    id: 'p3',
+    companyName: '토스',
+    campaignName: '대학생 금융 앰배서더',
+    status: '완료됨',
+    dueDate: '2026.04.30',
+  }
+];

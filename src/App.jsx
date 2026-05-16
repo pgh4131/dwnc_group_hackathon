@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import AuthModal from './components/AuthModal.jsx';
 import FeaturedProjectsSection from './components/FeaturedProjectsSection.jsx';
 import Footer from './components/Footer.jsx';
@@ -12,7 +12,8 @@ import UserTypeCTASection from './components/UserTypeCTASection.jsx';
 import ValueSection from './components/ValueSection.jsx';
 import CompanyDashboard from './pages/CompanyDashboard.jsx';
 import ClubDetail from './components/dashboard/ClubDetail.jsx';
-import StudentDashboard from './pages/StudentDashboard.jsx';
+import StudentDashboardHub from './pages/StudentDashboardHub.jsx';
+import StudentProjectDetail from './pages/StudentProjectDetail.jsx';
 import StudentApplicationPage from './pages/StudentApplicationPage.jsx';
 import PlaceholderPage, { ProjectDetailPlaceholder } from './pages/PlaceholderPage.jsx';
 import { homepageCopy } from './data/homepage.js';
@@ -25,6 +26,7 @@ import {
 import { fetchProjects } from './services/projects.js';
 
 function MainPage() {
+  const navigate = useNavigate();
   const [projectState, setProjectState] = useState({
     projects: [],
     source: 'supabase',
@@ -90,13 +92,17 @@ function MainPage() {
     setAccountType(null);
   };
 
-  const handleStartupClick = () => {
+  const handleStartupClick = (e) => {
+    if (e) e.preventDefault();
     if (accountType !== 'startup') {
-      window.alert(homepageCopy.auth.startupOnlyMessage);
+      window.alert('스타트업용 계정으로 로그인해 주세요.');
+      if (!session) {
+        setIsAuthModalOpen(true);
+      }
       return;
     }
 
-    window.location.href = '/startup';
+    navigate('/dashboard/company');
   };
 
   return (
@@ -111,7 +117,7 @@ function MainPage() {
         onStartupClick={handleStartupClick}
       />
       <main>
-        <HeroSection copy={homepageCopy.hero} />
+        <HeroSection copy={homepageCopy.hero} onStartupClick={handleStartupClick} />
         <FeaturedProjectsSection
           projects={projectState.projects}
           copy={homepageCopy.projects}
@@ -120,7 +126,7 @@ function MainPage() {
         />
         <ValueSection items={homepageCopy.values} sectionMeta={homepageCopy.valueSection} />
         <HowItWorksSection steps={homepageCopy.steps} sectionMeta={homepageCopy.howItWorksSection} />
-        <UserTypeCTASection cards={homepageCopy.userCtas} />
+        <UserTypeCTASection cards={homepageCopy.userCtas} onStartupClick={handleStartupClick} />
       </main>
       <Footer copy={homepageCopy.footer} serviceName={homepageCopy.serviceName} />
       <AuthModal
@@ -148,15 +154,6 @@ export default function App() {
         />
         <Route path="/projects/:id" element={<ProjectDetailPlaceholder />} />
         <Route
-          path="/startup"
-          element={
-            <PlaceholderPage
-              title="스타트업용"
-              description="스타트업 전용 화면은 추후 구현 예정입니다."
-            />
-          }
-        />
-        <Route
           path="/login"
           element={
             <PlaceholderPage title="로그인" description="로그인 화면은 추후 구현 예정입니다." />
@@ -166,7 +163,8 @@ export default function App() {
         <Route path="/student/apply" element={<StudentApplicationPage />} />
         <Route path="/dashboard/company" element={<CompanyDashboard />} />
         <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
-        <Route path="/dashboard/student" element={<StudentDashboard />} />
+        <Route path="/dashboard/student" element={<StudentDashboardHub />} />
+        <Route path="/dashboard/student/project/:id" element={<StudentProjectDetail />} />
         <Route path="/company/posts/new" element={<PostCreatePage />} />
         <Route path="/company/posts/complete" element={<PostCreateCompletePage />} />
       </Routes>

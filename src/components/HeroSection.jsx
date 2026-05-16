@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-export default function HeroSection({ copy }) {
+export default function HeroSection({ copy, onStartupClick }) {
   return (
     <section className="hero-section section-wrap">
       <div className="hero-copy">
@@ -8,11 +8,20 @@ export default function HeroSection({ copy }) {
         <h1>{copy.title}</h1>
         <p className="hero-description">{copy.description}</p>
         <div className="hero-actions">
-          {copy.actions.map((action) => (
-            <Link key={action.href} className={`button button-${action.variant} button-large`} to={action.href}>
-              {action.label}
-            </Link>
-          ))}
+          {copy.actions.map((action) => {
+            if (action.href === '/startup' && onStartupClick) {
+              return (
+                <button key={action.href} type="button" className={`button button-${action.variant} button-large`} onClick={onStartupClick}>
+                  {action.label}
+                </button>
+              );
+            }
+            return (
+              <Link key={action.href} className={`button button-${action.variant} button-large`} to={action.href}>
+                {action.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

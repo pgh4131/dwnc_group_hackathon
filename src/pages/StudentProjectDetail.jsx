@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import MissionList from "../components/studentDashboard/MissionList.jsx";
 import MissionTimeline from "../components/studentDashboard/MissionTimeline.jsx";
@@ -26,7 +27,7 @@ const studentHeaderCopy = {
   headerActions: [{ label: "기업 대시보드로", href: "/dashboard/company", variant: "secondary" }],
 };
 
-export default function StudentDashboard() {
+export default function StudentProjectDetail() {
   const [missions, setMissions] = useState(studentMissions);
 
   const dashboardStats = useMemo(() => {
@@ -53,8 +54,11 @@ export default function StudentDashboard() {
       <main className="section-wrap dashboard-main student-dashboard-main">
         <div className="student-hero">
           <div>
+            <Link to="/dashboard/student" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 800, color: 'var(--slate-500)', marginBottom: '16px' }}>
+              ← 허브로 돌아가기
+            </Link>
             <p className="student-eyebrow">{studentProfile.companyName} · {studentProfile.campaignName}</p>
-            <h1 className="dashboard-page-title">학생용 대시보드</h1>
+            <h1 className="dashboard-page-title">프로젝트 상세 관리창</h1>
             <p className="dashboard-page-sub">
               {studentProfile.clubName}이 수행 중인 미션, 제출 승인, 성과 지표, 피드백과 인증서 신청 상태를 한 화면에서 관리합니다.
             </p>
