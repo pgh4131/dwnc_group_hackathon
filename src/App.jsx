@@ -8,7 +8,12 @@ import HowItWorksSection from './components/HowItWorksSection.jsx';
 import UserTypeCTASection from './components/UserTypeCTASection.jsx';
 import ValueSection from './components/ValueSection.jsx';
 import { homepageCopy } from './data/homepage.js';
-import { getCurrentSession, signOut, subscribeToAuthChanges } from './services/auth.js';
+import {
+  getAccountType,
+  getCurrentSession,
+  signOut,
+  subscribeToAuthChanges,
+} from './services/auth.js';
 import { fetchProjects } from './services/projects.js';
 
 export default function App() {
@@ -19,6 +24,7 @@ export default function App() {
     error: null,
   });
   const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
@@ -54,12 +60,14 @@ export default function App() {
 
       if (isMounted) {
         setSession(result.session);
+        setAccountType(await getAccountType(result.session));
       }
     }
 
     loadSession();
-    const unsubscribe = subscribeToAuthChanges((nextSession) => {
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
     });
 
     return () => {
@@ -71,6 +79,16 @@ export default function App() {
   const handleLogout = async () => {
     await signOut();
     setSession(null);
+    setAccountType(null);
+  };
+
+  const handleStartupClick = () => {
+    if (accountType !== 'startup') {
+      window.alert(homepageCopy.auth.startupOnlyMessage);
+      return;
+    }
+
+    window.location.href = '/startup';
   };
 
   return (
@@ -79,8 +97,10 @@ export default function App() {
         copy={homepageCopy}
         isAuthenticated={Boolean(session)}
         userEmail={session?.user?.email}
+        accountType={accountType}
         onLoginClick={() => setIsAuthModalOpen(true)}
         onLogoutClick={handleLogout}
+        onStartupClick={handleStartupClick}
       />
       <main>
         <HeroSection copy={homepageCopy.hero} />

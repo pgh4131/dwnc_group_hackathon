@@ -5,6 +5,7 @@ export default function AuthModal({ copy, isOpen, onClose }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [accountType, setAccountType] = useState('general');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +28,7 @@ export default function AuthModal({ copy, isOpen, onClose }) {
         setStatus(copy.loginSuccess);
         onClose();
       } else {
-        await signUpWithEmail({ email, password });
+        await signUpWithEmail({ email, password, accountType });
         setStatus(copy.signupSuccess);
       }
     } catch (authError) {
@@ -99,6 +100,27 @@ export default function AuthModal({ copy, isOpen, onClose }) {
               onChange={(event) => setPassword(event.target.value)}
             />
           </label>
+
+          {mode === 'signup' ? (
+            <fieldset className="auth-account-types">
+              <legend>{copy.accountTypeLabel}</legend>
+              <div>
+                {copy.accountTypes.map((type) => (
+                  <label key={type.value} className={accountType === type.value ? 'is-selected' : ''}>
+                    <input
+                      type="radio"
+                      name="accountType"
+                      value={type.value}
+                      checked={accountType === type.value}
+                      onChange={(event) => setAccountType(event.target.value)}
+                    />
+                    <strong>{type.label}</strong>
+                    <span>{type.description}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
 
           {error ? <p className="auth-message auth-error">{error}</p> : null}
           {status ? <p className="auth-message auth-success">{status}</p> : null}

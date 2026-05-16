@@ -2,8 +2,10 @@ export default function Header({
   copy,
   isAuthenticated = false,
   userEmail = '',
+  accountType = null,
   onLoginClick,
   onLogoutClick,
+  onStartupClick,
 }) {
   const navigationItems = isAuthenticated
     ? [...copy.navigation, ...copy.authenticatedNavigation]
@@ -30,6 +32,11 @@ export default function Header({
 
       <div className="header-actions">
         {isAuthenticated && userEmail ? <span className="header-user">{userEmail}</span> : null}
+        {isAuthenticated ? (
+          <a className="button button-secondary" href="/clubs/dashboard">
+            {copy.auth.dashboardLabel}
+          </a>
+        ) : null}
         {copy.headerActions.map((action) => {
           if (action.type === 'auth') {
             return isAuthenticated ? (
@@ -47,6 +54,22 @@ export default function Header({
                 className={`button button-${action.variant}`}
                 type="button"
                 onClick={onLoginClick}
+              >
+                {action.label}
+              </button>
+            );
+          }
+
+          if (action.type === 'startup') {
+            return (
+              <button
+                key={action.type}
+                className={`button button-${action.variant}`}
+                type="button"
+                onClick={onStartupClick}
+                aria-label={
+                  accountType === 'startup' ? action.label : copy.auth.startupOnlyMessage
+                }
               >
                 {action.label}
               </button>
