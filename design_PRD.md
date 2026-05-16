@@ -4,7 +4,7 @@
 
 `Campus Bridge`는 스타트업과 대학 동아리/학회를 연결해 캠퍼스 마케팅 프로젝트를 탐색, 지원, 운영할 수 있게 돕는 B2B 플랫폼이다.
 
-현재 구현 범위는 메인페이지, Supabase 기반 공고 조회, 공고 검색, Supabase Auth 기반 로그인/회원가입 모달이다.
+현재 구현 범위는 메인페이지, Supabase 기반 공고 조회, 공고 검색, Supabase Auth 기반 로그인/회원가입 모달, 회원 유형 기반 스타트업용 진입 제어다.
 
 ## 2. 대상 사용자
 
@@ -19,8 +19,9 @@
 4. 공고 카드를 클릭해 `/projects/[id]` 상세 페이지로 이동한다.
 5. 더 많은 공고는 `더보기` 버튼으로 `/projects`에서 확인한다.
 6. `로그인` 버튼을 누르면 로그인/회원가입 모달이 열린다.
-7. 로그인 이후에는 `동아리/학회용` 메뉴가 노출된다.
-8. 스타트업 사용자는 우측 상단 `스타트업용` 버튼으로 이동한다.
+7. 회원가입 시 `일반용` 또는 `스타트업용` 계정 유형을 선택한다.
+8. 로그인 이후에는 `동아리/학회용` 메뉴와 `대시보드` 버튼이 노출된다.
+9. 스타트업용 계정만 우측 상단 `스타트업용` 버튼으로 `/startup`에 진입할 수 있다.
 
 ## 4. 페이지 구조
 
@@ -29,7 +30,8 @@
 - 좌측: `Campus Bridge` 브랜드
 - 우측: `로그인` 또는 `로그아웃`, `스타트업용`
 - 로그인 상태일 때 사용자 이메일을 표시한다.
-- 로그인 상태일 때만 `동아리/학회용` 메뉴를 노출한다.
+- 로그인 상태일 때만 `동아리/학회용` 메뉴와 `대시보드` 버튼을 노출한다.
+- 스타트업용 계정이 아닌 사용자가 `스타트업용` 버튼을 누르면 `스타트업용 계정이 아닙니다.` 알림을 표시하고 이동하지 않는다.
 - `공고 등록하기`는 메인에서 노출하지 않는다.
 
 ### Auth Modal
@@ -37,8 +39,9 @@
 - `로그인` 버튼 클릭 시 중앙 모달로 열린다.
 - 모달 내부에서 `로그인` / `회원가입` 탭을 전환한다.
 - 이메일과 비밀번호를 입력한다.
+- 회원가입 모드에서는 `일반용` 또는 `스타트업용` 계정 유형을 선택한다.
 - 로그인은 Supabase `signInWithPassword`를 사용한다.
-- 회원가입은 Supabase `signUp`을 사용한다.
+- 회원가입은 Supabase `signUp`을 사용하며 선택한 계정 유형을 auth metadata에 저장한다.
 - 로그인 성공 시 모달을 닫고 헤더 상태를 갱신한다.
 - 회원가입 성공 시 확인 메시지를 표시한다.
 - 인증 오류는 모달 내부 메시지로 표시한다.
@@ -129,18 +132,45 @@ Supabase row는 화면에서 다음 형태로 변환한다.
 
 - 이메일/비밀번호 로그인
 - 이메일/비밀번호 회원가입
+- 회원가입 시 계정 유형 선택: `general`, `startup`
 - 로그아웃
 - 세션 유지 및 auth state change 구독
+- `profiles` 테이블에서 로그인 사용자의 계정 유형 조회
 
 화면 반영:
 
 - 비로그인: `로그인`, `스타트업용`
-- 로그인: 사용자 이메일, `로그아웃`, `스타트업용`, `동아리/학회용`
+- 로그인: 사용자 이메일, `대시보드`, `로그아웃`, `스타트업용`, `동아리/학회용`
+- 스타트업용 계정: `스타트업용` 버튼 클릭 시 `/startup` 이동
+- 일반용 계정 또는 비로그인 상태: `스타트업용 계정이 아닙니다.` 알림 후 이동 차단
 
 오류 처리:
 
 - 환경 변수 누락 시 인증 요청을 막고 오류를 표시한다.
 - Supabase Auth 오류 메시지는 모달 내부에 표시한다.
+
+### Profiles Table
+
+테이블명: `public.profiles`
+
+필드:
+
+- `id`: uuid, primary key, `auth.users(id)` 참조
+- `email`: text
+- `account_type`: text, `general` 또는 `startup`
+- `created_at`: timestamptz
+- `updated_at`: timestamptz
+
+자동 생성:
+
+- `supabase/auth_profiles.sql`에서 `public.profiles` 테이블과 auth trigger를 생성한다.
+- 신규 회원가입 시 `raw_user_meta_data.account_type` 값을 `profiles.account_type`으로 복사한다.
+- 기존 유저도 backfill insert를 수행한다.
+
+보안/접근:
+
+- authenticated 사용자는 자신의 profile만 select할 수 있다.
+- account type은 UX gating 용도이며, 실제 스타트업 전용 API가 생기면 서버/RLS에서 별도 권한 검증이 필요하다.
 
 ## 7. 검색 기능 요구사항
 
@@ -281,6 +311,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 - `src/services/projects.js`
 - `src/utils/supabase/client.js`
 - `src/styles.css`
+- `supabase/auth_profiles.sql`
 - `supabase/projects_seed.sql`
 - `supabase/README.md`
 
@@ -290,4 +321,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 - `app/page.tsx`, `middleware.ts`, `utils/supabase/*`는 Next 전환용 템플릿이며 현재 Vite 런타임에는 직접 관여하지 않는다.
 - Supabase `public.projects` 테이블이 없으면 공고 카드가 표시되지 않는다.
 - 실제 공고 표시를 위해 Supabase SQL Editor에서 `supabase/projects_seed.sql`을 실행해야 한다.
+- 회원 유형 저장을 위해 Supabase SQL Editor에서 `supabase/auth_profiles.sql`을 실행해야 한다.
 - Supabase Auth에서 이메일 확인 설정이 켜져 있으면 회원가입 후 확인 메일 인증이 필요하다.

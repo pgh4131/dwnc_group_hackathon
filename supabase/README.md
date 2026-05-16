@@ -27,3 +27,14 @@ The script:
 - inserts 8 dummy project rows
 
 If the table does not exist yet, the app shows a setup/error state instead of project cards.
+
+## Create auth profiles
+
+Run `supabase/auth_profiles.sql` in the Supabase SQL Editor.
+
+The script:
+
+- creates `public.profiles`
+- stores each user's `general` or `startup` account type
+- creates an auth trigger that copies the signup account type into `profiles`
+- allows authenticated users to read only their own profile

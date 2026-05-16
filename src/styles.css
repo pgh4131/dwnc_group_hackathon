@@ -337,6 +337,64 @@ button {
   font-weight: 900;
 }
 
+.auth-account-types {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 2px 0 0;
+  border: 0;
+}
+
+.auth-account-types legend {
+  margin-bottom: 8px;
+  color: var(--slate-700);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.auth-account-types > div {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.auth-account-types label {
+  position: relative;
+  display: grid;
+  min-height: 92px;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--slate-200);
+  border-radius: 14px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.auth-account-types label.is-selected {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.2);
+}
+
+.auth-account-types input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.auth-account-types strong {
+  color: var(--slate-900);
+  font-size: 15px;
+}
+
+.auth-account-types label span {
+  color: var(--slate-500);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .auth-form input {
   min-height: 48px;
   padding: 0 14px;
@@ -924,6 +982,10 @@ button {
   .auth-modal {
     padding: 20px;
     border-radius: 20px;
+  }
+
+  .auth-account-types > div {
+    grid-template-columns: 1fr;
   }
 
   .stats-grid,

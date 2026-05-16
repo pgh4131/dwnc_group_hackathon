@@ -13,7 +13,12 @@ import ClubDetail from './components/dashboard/ClubDetail.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import PlaceholderPage, { ProjectDetailPlaceholder } from './pages/PlaceholderPage.jsx';
 import { homepageCopy } from './data/homepage.js';
-import { getCurrentSession, signOut, subscribeToAuthChanges } from './services/auth.js';
+import {
+  getAccountType,
+  getCurrentSession,
+  signOut,
+  subscribeToAuthChanges,
+} from './services/auth.js';
 import { fetchProjects } from './services/projects.js';
 
 function MainPage() {
@@ -24,6 +29,7 @@ function MainPage() {
     error: null,
   });
   const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
@@ -59,12 +65,14 @@ function MainPage() {
 
       if (isMounted) {
         setSession(result.session);
+        setAccountType(await getAccountType(result.session));
       }
     }
 
     loadSession();
-    const unsubscribe = subscribeToAuthChanges((nextSession) => {
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
     });
 
     return () => {
@@ -76,6 +84,16 @@ function MainPage() {
   const handleLogout = async () => {
     await signOut();
     setSession(null);
+    setAccountType(null);
+  };
+
+  const handleStartupClick = () => {
+    if (accountType !== 'startup') {
+      window.alert(homepageCopy.auth.startupOnlyMessage);
+      return;
+    }
+
+    window.location.href = '/startup';
   };
 
   return (
@@ -84,8 +102,10 @@ function MainPage() {
         copy={homepageCopy}
         isAuthenticated={Boolean(session)}
         userEmail={session?.user?.email}
+        accountType={accountType}
         onLoginClick={() => setIsAuthModalOpen(true)}
         onLogoutClick={handleLogout}
+        onStartupClick={handleStartupClick}
       />
       <main>
         <HeroSection copy={homepageCopy.hero} />
