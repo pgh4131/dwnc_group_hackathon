@@ -1,48 +1,43 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header.jsx";
-import MissionList from "../components/studentDashboard/MissionList.jsx";
-import MissionTimeline from "../components/studentDashboard/MissionTimeline.jsx";
-import FeedbackInbox from "../components/studentDashboard/FeedbackInbox.jsx";
-import CertificateSection from "../components/studentDashboard/CertificateSection.jsx";
-import ComparisonChart from "../components/studentDashboard/ComparisonChart.jsx";
-import StudentMetricCharts from "../components/studentDashboard/StudentMetricCharts.jsx";
 import { homepageCopy } from "../data/homepage.js";
-import {
-  certificateState,
-  comparisonRows,
-  feedbackMessages,
-  metricSeries,
-  myClubScore,
-  peerAverageScore,
-  studentMissions,
-  studentProfile,
-  studentTimeline,
-} from "../data/studentDashboardData.js";
+import { studentMissions, studentProfile } from "../data/studentDashboardData.js";
 
 const studentHeaderCopy = {
   ...homepageCopy,
   navigation: [],
   authenticatedNavigation: [],
-  headerActions: [{ label: "기업 대시보드로", href: "/dashboard/company", variant: "secondary" }],
+  headerActions: [],
+};
+
+const missionStatusMeta = {
+  in_progress: { label: "진행 중", tone: "success" },
+  review: { label: "검토 중", tone: "warning" },
+  completed: { label: "완료", tone: "muted" },
 };
 
 export default function StudentDashboard() {
-  const [missions, setMissions] = useState(studentMissions);
+  const navigate = useNavigate();
 
   const dashboardStats = useMemo(() => {
-    const total = missions.length || 1;
-    const avgKpi = Math.round(missions.reduce((sum, mission) => sum + mission.kpiProgress, 0) / total);
-    const avgProgress = Math.round(missions.reduce((sum, mission) => sum + mission.overallProgress, 0) / total);
-    const approvalItems = missions.flatMap((mission) => mission.approvalItems);
-    const pendingCount = approvalItems.filter((item) => item.status === "pending" || item.status === "revision").length;
+    const total = studentMissions.length || 1;
+    const activeCount = studentMissions.filter((mission) => mission.status !== "completed").length;
+    const completedCount = studentMissions.filter((mission) => mission.status === "completed").length;
+    const avgProgress = Math.round(studentMissions.reduce((sum, mission) => sum + mission.overallProgress, 0) / total);
 
     return {
-      avgKpi,
       avgProgress,
-      pendingCount,
-      missionCount: missions.length,
+      activeCount,
+      completedCount,
     };
-  }, [missions]);
+  }, []);
+
+  const uniqueCompanyCount = new Set(studentMissions.map((mission) => mission.companyName)).size;
+
+  function openMission(missionId) {
+    navigate(`/dashboard/student/mission/${missionId}`);
+  }
 
   return (
     <div className="dashboard-page student-dashboard-page">
@@ -51,56 +46,70 @@ export default function StudentDashboard() {
       </div>
 
       <main className="section-wrap dashboard-main student-dashboard-main">
-        <div className="student-hero">
-          <div>
-            <p className="student-eyebrow">{studentProfile.companyName} · {studentProfile.campaignName}</p>
-            <h1 className="dashboard-page-title">학생용 대시보드</h1>
-            <p className="dashboard-page-sub">
-              {studentProfile.clubName}이 수행 중인 미션, 제출 승인, 성과 지표, 피드백과 인증서 신청 상태를 한 화면에서 관리합니다.
-            </p>
-          </div>
-          <div className="student-hero-card">
-            <span>담당자</span>
-            <strong>{studentProfile.owner}</strong>
-            <p>{studentProfile.university}</p>
-          </div>
-        </div>
+        <h1 className="dashboard-page-title">나의 미션</h1>
+        <p className="dashboard-page-sub">참여 중인 캠페인 목록</p>
 
         <div className="dashboard-metric-grid">
           <div className="company-metric-card company-metric-card--neutral">
-            <p className="company-metric-label">진행 미션</p>
-            <p className="company-metric-value">{dashboardStats.missionCount}</p>
-            <p className="company-metric-desc">기업 협업 미션</p>
+            <p className="company-metric-label">진행 중인 미션 수</p>
+            <p className="company-metric-value">{dashboardStats.activeCount}</p>
+            <p className="company-metric-desc">{uniqueCompanyCount}개 스타트업 협업</p>
           </div>
           <div className="company-metric-card company-metric-card--neutral">
-            <p className="company-metric-label">평균 KPI 달성률</p>
-            <p className="company-metric-value">{dashboardStats.avgKpi}%</p>
-            <p className="company-metric-desc">정량 지표 기준</p>
+            <p className="company-metric-label">완료된 미션 수</p>
+            <p className="company-metric-value">{dashboardStats.completedCount}</p>
+            <p className="company-metric-desc">승인 완료 기준</p>
           </div>
           <div className="company-metric-card company-metric-card--neutral">
-            <p className="company-metric-label">전체 진행률</p>
+            <p className="company-metric-label">전체 평균 진행률</p>
             <p className="company-metric-value">{dashboardStats.avgProgress}%</p>
-            <p className="company-metric-desc">기업 승인 반영</p>
-          </div>
-          <div className="company-metric-card company-metric-card--neutral">
-            <p className="company-metric-label">확인 필요</p>
-            <p className="company-metric-value">{dashboardStats.pendingCount}</p>
-            <p className="company-metric-desc">승인 대기·수정 요청</p>
+            <p className="company-metric-desc">KPI + 기업 승인 반영</p>
           </div>
         </div>
 
-        <div className="student-dashboard-grid">
-          <div className="student-dashboard-primary">
-            <MissionList missions={missions} onMissionsChange={setMissions} />
-            <StudentMetricCharts rows={metricSeries} myScore={myClubScore} peerScore={peerAverageScore} />
-            <ComparisonChart rows={comparisonRows} />
-          </div>
-
-          <aside className="student-dashboard-side">
-            <MissionTimeline timeline={studentTimeline} />
-            <FeedbackInbox messages={feedbackMessages} missions={missions} />
-            <CertificateSection missions={missions} certificate={certificateState} />
-          </aside>
+        <div className="student-mission-overview-list">
+          {studentMissions.map((mission) => {
+            const status = missionStatusMeta[mission.status] ?? missionStatusMeta.in_progress;
+            return (
+              <article
+                key={mission.id}
+                className="student-mission-overview-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => openMission(mission.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openMission(mission.id);
+                  }
+                }}
+              >
+                <div className="student-company-avatar" aria-hidden>
+                  {mission.companyName.slice(0, 2)}
+                </div>
+                <div className="student-mission-overview-body">
+                  <div className="student-mission-overview-top">
+                    <span>
+                      {mission.companyName} · {mission.companyIndustry}
+                    </span>
+                    <span className={`student-status-badge student-status-badge--${status.tone}`}>{status.label}</span>
+                  </div>
+                  <h2>{mission.title}</h2>
+                  <p>{mission.period}</p>
+                  <div className="student-progress-label">
+                    <span>전체 진행률</span>
+                    <strong>{mission.overallProgress}%</strong>
+                  </div>
+                  <div className="student-progress-track student-progress-track--overall">
+                    <span style={{ width: `${mission.overallProgress}%` }} />
+                  </div>
+                </div>
+                <span className="student-mission-arrow" aria-hidden>
+                  ›
+                </span>
+              </article>
+            );
+          })}
         </div>
       </main>
     </div>

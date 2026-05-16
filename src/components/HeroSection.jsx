@@ -9,7 +9,8 @@ export default function HeroSection({ copy, onStartupClick }) {
         <p className="hero-description">{copy.description}</p>
         <div className="hero-actions">
           {copy.actions.map((action) => {
-            const shouldUseStartupGate = action.type === 'startup' && onStartupClick;
+            const shouldUseStartupGate =
+              (action.type === 'startup' || action.href === '/startup') && onStartupClick;
 
             return (
               <Link
@@ -20,7 +21,7 @@ export default function HeroSection({ copy, onStartupClick }) {
                   shouldUseStartupGate
                     ? (event) => {
                         event.preventDefault();
-                        onStartupClick();
+                        onStartupClick(event);
                       }
                     : undefined
                 }

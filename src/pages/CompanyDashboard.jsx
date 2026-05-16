@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header.jsx";
 import { homepageCopy } from "../data/homepage.js";
+import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from "../services/auth.js";
 import {
   clubColors,
   statusLabel,
@@ -24,6 +26,41 @@ function pickTopBottomByScore(rows) {
 
 export default function CompanyDashboard() {
   const navigate = useNavigate();
+  const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSession() {
+      const result = await getCurrentSession();
+      if (isMounted) {
+        setSession(result.session);
+        setAccountType(await getAccountType(result.session));
+      }
+    }
+    loadSession();
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
+      setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
+    });
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    setSession(null);
+    setAccountType(null);
+    navigate('/');
+  };
+
+  const companyHeaderCopy = {
+    ...homepageCopy,
+    headerActions: homepageCopy.headerActions.filter(action => action.type !== 'startup')
+  };
+
   const company = companies.find((c) => c.company_id === DEFAULT_COMPANY_ID);
   const avgPct = averageMissionPct(clubs);
   const { top, bottom } = pickTopBottomByScore(clubs);
@@ -36,7 +73,14 @@ export default function CompanyDashboard() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-header-shell">
-        <Header copy={homepageCopy} isAuthenticated={false} />
+        <Header 
+          copy={companyHeaderCopy} 
+          isAuthenticated={Boolean(session)} 
+          userEmail={session?.user?.email}
+          accountType={accountType}
+          onLogoutClick={handleLogout}
+          hideDashboardButton={true}
+        />
       </div>
 
       <main className="section-wrap dashboard-main">

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-export default function UserTypeCTASection({ cards, onStartupClick, onStudentClick }) {
+export default function UserTypeCTASection({ cards, onStartupClick }) {
   return (
     <section className="section-surface-cta section-spacing">
       <div className="section-wrap">
@@ -17,13 +17,8 @@ export default function UserTypeCTASection({ cards, onStartupClick, onStudentCli
                   card.type === 'startup' && onStartupClick
                     ? (event) => {
                         event.preventDefault();
-                        onStartupClick();
+                        onStartupClick(event);
                       }
-                    : card.type === 'student' && onStudentClick
-                      ? (event) => {
-                          event.preventDefault();
-                          onStudentClick();
-                        }
                     : undefined
                 }
               >

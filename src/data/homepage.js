@@ -80,9 +80,8 @@ export const homepageCopy = {
       audience: '동아리/학회용',
       title: '실무 협업 경험을 프로젝트로 남기세요',
       description: '팀의 전공, 관심사, 실행력을 살릴 수 있는 기업 프로젝트를 확인하고 지원하세요.',
-      buttonLabel: '학생 대시보드로 이동',
-      href: '/dashboard/student',
-      type: 'student',
+      buttonLabel: '지원서 작성하기',
+      href: '/student/apply',
     },
   ],
   footer: {

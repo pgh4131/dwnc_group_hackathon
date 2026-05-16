@@ -13,6 +13,10 @@ import ValueSection from './components/ValueSection.jsx';
 import CompanyDashboard from './pages/CompanyDashboard.jsx';
 import ClubDetail from './components/dashboard/ClubDetail.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
+import StudentMissionDetail from './pages/StudentMissionDetail.jsx';
+import StudentDashboardHub from './pages/StudentDashboardHub.jsx';
+import StudentProjectDetail from './pages/StudentProjectDetail.jsx';
+import StudentApplicationPage from './pages/StudentApplicationPage.jsx';
 import PlaceholderPage from './pages/PlaceholderPage.jsx';
 import ProjectDetailPage from './pages/ProjectDetailPage.jsx';
 import ProjectsPage from './pages/ProjectsPage.jsx';
@@ -103,7 +107,11 @@ function MainPage() {
     setAuthNotice('');
   };
 
-  const handleStartupClick = () => {
+  const handleStartupClick = (event) => {
+    if (event) {
+      event.preventDefault();
+    }
+
     if (!session) {
       openAuthModal(homepageCopy.auth.loginRequiredMessage);
       return;
@@ -115,20 +123,6 @@ function MainPage() {
     }
 
     navigate('/dashboard/company');
-  };
-
-  const handleStudentDashboardClick = () => {
-    if (!session) {
-      openAuthModal(homepageCopy.auth.studentLoginRequiredMessage);
-      return;
-    }
-
-    if (accountType === 'startup') {
-      window.alert(homepageCopy.auth.studentOnlyMessage);
-      return;
-    }
-
-    navigate('/dashboard/student');
   };
 
   return (
@@ -152,11 +146,7 @@ function MainPage() {
         />
         <ValueSection items={homepageCopy.values} sectionMeta={homepageCopy.valueSection} />
         <HowItWorksSection steps={homepageCopy.steps} sectionMeta={homepageCopy.howItWorksSection} />
-        <UserTypeCTASection
-          cards={homepageCopy.userCtas}
-          onStartupClick={handleStartupClick}
-          onStudentClick={handleStudentDashboardClick}
-        />
+        <UserTypeCTASection cards={homepageCopy.userCtas} onStartupClick={handleStartupClick} />
       </main>
       <Footer copy={homepageCopy.footer} serviceName={homepageCopy.serviceName} />
       <AuthModal
@@ -183,11 +173,15 @@ export default function App() {
             <PlaceholderPage title="로그인" description="로그인 화면은 추후 구현 예정입니다." />
           }
         />
-        <Route path="/clubs" element={<Navigate to="/dashboard/student" replace />} />
+        <Route path="/clubs" element={<StudentApplicationPage />} />
+        <Route path="/student/apply" element={<StudentApplicationPage />} />
         <Route path="/clubs/dashboard" element={<Navigate to="/dashboard/student" replace />} />
         <Route path="/dashboard/company" element={<CompanyDashboard />} />
         <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
-        <Route path="/dashboard/student" element={<StudentDashboard />} />
+        <Route path="/dashboard/student" element={<StudentDashboardHub />} />
+        <Route path="/dashboard/student/missions" element={<StudentDashboard />} />
+        <Route path="/dashboard/student/mission/:id" element={<StudentMissionDetail />} />
+        <Route path="/dashboard/student/project/:id" element={<StudentProjectDetail />} />
         <Route path="/company/posts/new" element={<PostCreatePage />} />
         <Route path="/company/posts/complete" element={<PostCreateCompletePage />} />
       </Routes>
