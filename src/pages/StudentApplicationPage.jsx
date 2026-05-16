@@ -19,6 +19,7 @@ import {
 import {
   getStudentClubProfile,
   hasStudentClubProfile,
+  fetchAndCacheProfile,
 } from '../services/studentClubProfileStorage.js';
 
 const organizationTypeOptions = [
@@ -240,12 +241,20 @@ export default function StudentApplicationPage() {
       if (isMounted) {
         setAccountType(nextAccountType);
       }
+
+      // Fetch fresh profile from Supabase and re-check
+      await fetchAndCacheProfile(result.session);
+      if (isMounted) {
+        setHasClubProfile(hasStudentClubProfile(result.session));
+        setValues(getInitialValues(result.session));
+      }
     }
 
     loadSession();
     const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
       setAccountType(nextSession?.user?.user_metadata?.account_type || null);
+      await fetchAndCacheProfile(nextSession);
       setHasClubProfile(hasStudentClubProfile(nextSession));
       setValues(getInitialValues(nextSession));
       setIsAuthLoading(false);
