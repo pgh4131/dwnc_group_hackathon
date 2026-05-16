@@ -4,6 +4,13 @@ import jsPDF from "jspdf";
 
 const studentProfile = { clubName: "", companyName: "", campaignName: "" };
 
+const INITIAL_PAYMENT_FORM = {
+  cardNumber: "",
+  expiry: "",
+  cvc: "",
+  ownerName: "",
+};
+
 function formatToday() {
   const today = new Date();
   const year = today.getFullYear();
@@ -21,12 +28,52 @@ function getActivityPeriod(missions) {
   return startDate && endDate ? `${startDate} ~ ${endDate}` : firstPeriod;
 }
 
+function formatCardNumber(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 16);
+  return digits.match(/.{1,4}/g)?.join(" - ") ?? "";
+}
+
+function formatExpiry(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
+}
+
+function validatePaymentForm(form) {
+  const errors = {};
+  const cardDigits = form.cardNumber.replace(/\D/g, "");
+  const expiryDigits = form.expiry.replace(/\D/g, "");
+  const month = Number(expiryDigits.slice(0, 2));
+
+  if (cardDigits.length !== 16) {
+    errors.cardNumber = "카드번호 16자리를 입력해주세요.";
+  }
+
+  if (expiryDigits.length !== 4 || month < 1 || month > 12) {
+    errors.expiry = "유효기간은 MM / YY 형식으로 입력해주세요.";
+  }
+
+  if (!/^\d{3}$/.test(form.cvc)) {
+    errors.cvc = "CVC 3자리 숫자를 입력해주세요.";
+  }
+
+  if (!form.ownerName.trim()) {
+    errors.ownerName = "카드 소유자명을 입력해주세요.";
+  }
+
+  return errors;
+}
+
 export default function CertificateSection({ missions, certificate }) {
   const pdfRef = useRef(null);
   const badgeRef = useRef(null);
   const [selectedOption, setSelectedOption] = useState(certificate.options[0]?.id ?? "pdf");
   const [status, setStatus] = useState(certificate.status);
   const [showPreview, setShowPreview] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState(INITIAL_PAYMENT_FORM);
+  const [paymentErrors, setPaymentErrors] = useState({});
+  const [isPaying, setIsPaying] = useState(false);
   const issuedDate = useMemo(() => formatToday(), []);
   const activityPeriod = useMemo(() => getActivityPeriod(missions), [missions]);
   const missionName = missions[0]?.title ?? studentProfile.campaignName;
@@ -51,10 +98,51 @@ export default function CertificateSection({ missions, certificate }) {
   }, [missions]);
 
   function requestCertificate() {
+    setShowPaymentModal(true);
+  }
+
+  function closePaymentModal() {
+    if (isPaying) return;
+    setShowPaymentModal(false);
+    setPaymentErrors({});
+  }
+
+  function updatePaymentField(field, value) {
+    const nextValue =
+      field === "cardNumber"
+        ? formatCardNumber(value)
+        : field === "expiry"
+          ? formatExpiry(value)
+          : field === "cvc"
+            ? value.replace(/\D/g, "").slice(0, 3)
+            : value;
+
+    setPaymentForm((current) => ({ ...current, [field]: nextValue }));
+    setPaymentErrors((current) => ({ ...current, [field]: undefined }));
+  }
+
+  function completeCertificateRequest() {
+    setShowPaymentModal(false);
     setShowPreview(true);
+    setPaymentForm(INITIAL_PAYMENT_FORM);
+    setPaymentErrors({});
     if (validation.isReady) {
       setStatus("pending_company");
     }
+  }
+
+  function handlePaymentSubmit() {
+    const nextErrors = validatePaymentForm(paymentForm);
+    if (Object.keys(nextErrors).length > 0) {
+      setPaymentErrors(nextErrors);
+      return;
+    }
+
+    setIsPaying(true);
+    window.setTimeout(() => {
+      setIsPaying(false);
+      completeCertificateRequest();
+    }, 1500);
   }
 
   async function handleDownloadPDF() {
@@ -128,6 +216,71 @@ export default function CertificateSection({ missions, certificate }) {
       >
         자동 검증 후 신청
       </button>
+
+      {showPaymentModal ? (
+        <div className="certificate-payment-overlay" role="presentation">
+          <div className="certificate-payment-modal" role="dialog" aria-modal="true" aria-labelledby="certificate-payment-title">
+            <button type="button" className="certificate-payment-close" onClick={closePaymentModal} aria-label="결제 모달 닫기">
+              ×
+            </button>
+            <h3 id="certificate-payment-title">인증서 결제</h3>
+            <strong className="certificate-payment-price">4,900원</strong>
+            <p className="certificate-payment-desc">활동 인증서 발급 수수료</p>
+
+            <label className="certificate-payment-field">
+              <span>카드 번호</span>
+              <input
+                value={paymentForm.cardNumber}
+                onChange={(event) => updatePaymentField("cardNumber", event.target.value)}
+                placeholder="0000 - 0000 - 0000 - 0000"
+                maxLength={25}
+                className={paymentErrors.cardNumber ? "is-error" : ""}
+              />
+              {paymentErrors.cardNumber ? <em>{paymentErrors.cardNumber}</em> : null}
+            </label>
+
+            <label className="certificate-payment-field">
+              <span>유효기간</span>
+              <input
+                value={paymentForm.expiry}
+                onChange={(event) => updatePaymentField("expiry", event.target.value)}
+                placeholder="MM / YY"
+                maxLength={7}
+                className={paymentErrors.expiry ? "is-error" : ""}
+              />
+              {paymentErrors.expiry ? <em>{paymentErrors.expiry}</em> : null}
+            </label>
+
+            <label className="certificate-payment-field">
+              <span>CVC</span>
+              <input
+                type="password"
+                value={paymentForm.cvc}
+                onChange={(event) => updatePaymentField("cvc", event.target.value)}
+                placeholder="CVC 3자리"
+                maxLength={3}
+                className={paymentErrors.cvc ? "is-error" : ""}
+              />
+              {paymentErrors.cvc ? <em>{paymentErrors.cvc}</em> : null}
+            </label>
+
+            <label className="certificate-payment-field">
+              <span>카드 소유자명</span>
+              <input
+                value={paymentForm.ownerName}
+                onChange={(event) => updatePaymentField("ownerName", event.target.value)}
+                placeholder="카드에 표시된 이름"
+                className={paymentErrors.ownerName ? "is-error" : ""}
+              />
+              {paymentErrors.ownerName ? <em>{paymentErrors.ownerName}</em> : null}
+            </label>
+
+            <button type="button" className="certificate-payment-submit" onClick={handlePaymentSubmit} disabled={isPaying}>
+              {isPaying ? "결제 중..." : "3,000원 결제하기"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {showPreview ? (
         <div className="student-certificate-preview-wrap">
