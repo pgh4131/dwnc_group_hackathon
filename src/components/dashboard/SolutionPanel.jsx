@@ -6,22 +6,24 @@ import { useState } from "react";
  */
 export default function SolutionPanel({ missionId, solutions = [], initialNotices = [] }) {
   const [selected, setSelected] = useState([]);
-  const [custom, setCustom] = useState("");
-  const [sent, setSent] = useState(false);
 
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeText, setNoticeText] = useState("");
   const [notices, setNotices] = useState(initialNotices);
   const [noticeSent, setNoticeSent] = useState(false);
 
+  const [newMissionText, setNewMissionText] = useState("");
+  const [missionSent, setMissionSent] = useState(false);
+
   function toggleSol(id) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-    setSent(false);
+    setMissionSent(false);
   }
 
-  function handleSendSolution() {
-    if (selected.length === 0 && !custom.trim()) return;
-    setSent(true);
+  function handleSendMission() {
+    if (selected.length === 0 && !newMissionText.trim()) return;
+    setMissionSent(true);
+    setTimeout(() => setMissionSent(false), 2500);
   }
 
   function handleSendNotice() {
@@ -46,13 +48,17 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
     setTimeout(() => setNoticeSent(false), 2500);
   }
 
+  function handleAiRecommendMission() {
+    window.alert("AI 추천 기능은 추후 지원될 예정입니다.");
+  }
+
   return (
     <div>
       <div className="dashboard-card">
         <p className="dashboard-section-label">
-          마케팅 솔루션 (marketing_solutions) · 미션 #{missionId}
+          미션 전달 (assign_mission) · 공고 #{missionId}
         </p>
-        <p className="dashboard-lead">적용할 솔루션을 선택하고 동아리에 전달하세요.</p>
+        <p className="dashboard-lead">동아리에게 전달할 미션을 선택하거나 직접 입력하여 전달하세요.</p>
 
         {solutions.map((sol) => {
           const on = selected.includes(sol.id);
@@ -84,27 +90,37 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
           );
         })}
 
-        <div className="dashboard-field-block">
-          <p className="dashboard-input-label">기타 피드백 (solution_type: custom)</p>
+        <div className="dashboard-field-block" style={{ marginTop: '24px' }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <p className="dashboard-input-label" style={{ margin: 0 }}>직접 입력 / 기타 미션</p>
+            <button
+              type="button"
+              className="ai-recommend-btn"
+              onClick={handleAiRecommendMission}
+            >
+              ✨ AI로 미션 추천받기
+            </button>
+          </div>
+          
           <textarea
-            value={custom}
+            value={newMissionText}
             onChange={(e) => {
-              setCustom(e.target.value);
-              setSent(false);
+              setNewMissionText(e.target.value);
+              setMissionSent(false);
             }}
-            placeholder="추가 피드백을 입력하세요..."
-            rows={3}
-            className="dashboard-input"
+            placeholder="동아리가 수행할 구체적인 미션 내용을 직접 입력하거나 AI 추천을 받아보세요..."
+            rows={4}
+            className="dashboard-input dashboard-input--mb"
           />
         </div>
 
         <button
           type="button"
-          onClick={handleSendSolution}
-          disabled={sent}
-          className={`button ${sent ? "button-secondary" : "button-primary"}`}
+          onClick={handleSendMission}
+          disabled={missionSent}
+          className={`button ${missionSent ? "button-secondary" : "button-primary"}`}
         >
-          {sent ? "✓ 전송 완료" : "동아리에 솔루션 전달"}
+          {missionSent ? "✓ 미션 전달 완료" : "동아리에 미션 전달"}
         </button>
       </div>
 
