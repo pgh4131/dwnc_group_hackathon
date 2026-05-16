@@ -357,9 +357,7 @@ export async function acceptApplication(companyId, application, post = null) {
 
   if (matchError) return { match: null, error: matchError.message };
 
-  // 3. 기본 미션 생성: 기업/학생 대시보드에서 선택된 프로젝트가 즉시 보이도록 연결한다.
-  const { error: missionError } = await createDefaultMission({ match, post, clubId: club.club_id });
-  if (missionError) return { match: null, error: missionError };
+  // 3. 기본 미션 생성 제거: 프로젝트 목록에 프로젝트만 뜨도록 하고 미션은 기업이 별도로 추가하게 함.
 
   // 4. student_applications status → accepted
   const { error: applicationError } = await supabase

@@ -161,9 +161,13 @@ export default function StudentProjectDetail() {
           <div>
             <p className="student-eyebrow">{selectedMission.companyName} · {selectedMission.companyIndustry}</p>
             <h1 className="dashboard-page-title">{selectedProject?.title || selectedMission.title}</h1>
-            <p className="dashboard-page-sub">
-              {selectedProject?.latestMissionTitle || selectedMission.title} · 미션 {detailMissions.length}개
-            </p>
+            {selectedProject?.missionCount === 0 ? (
+              <p className="dashboard-page-sub">기업에서 첫 미션을 전달하기를 대기 중입니다.</p>
+            ) : (
+              <p className="dashboard-page-sub">
+                {selectedProject?.latestMissionTitle || selectedMission.title} · 포함된 미션 {selectedProject?.missionCount ?? detailMissions.length}개
+              </p>
+            )}
           </div>
           <div className="student-hero-card">
             <span>전체 진행률</span>

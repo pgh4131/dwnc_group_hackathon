@@ -324,7 +324,11 @@ export default function StudentDashboardHub() {
                             <span className={`student-status-badge student-status-badge--${status.tone}`}>{status.label}</span>
                           </div>
                           <h2>{project.title}</h2>
-                          <p>{project.latestMissionTitle} · 미션 {project.missionCount}개</p>
+                          {project.missionCount === 0 ? (
+                            <p>미션 대기 중 (기업에서 미션을 전달할 예정입니다)</p>
+                          ) : (
+                            <p>{project.latestMissionTitle} · 포함된 미션 {project.missionCount}개</p>
+                          )}
                           <div className="student-progress-label">
                             <span>전체 진행률</span>
                             <strong>{project.overallProgress}%</strong>
