@@ -108,7 +108,7 @@
 
 초기 더미데이터:
 
-- `supabase/projects_seed.sql`에서 테이블 생성, 권한 설정, RLS policy, 더미 공고 4개 insert를 제공한다.
+- `supabase/projects_seed.sql`에서 테이블 생성, 권한 설정, RLS policy, 더미 공고 8개 insert를 제공한다.
 - 실제 Supabase 화면 표시를 위해 SQL Editor에서 해당 파일을 실행해야 한다.
 
 ### Frontend Mapping

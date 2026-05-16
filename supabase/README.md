@@ -24,6 +24,6 @@ The script:
 - grants read access to `anon` and `authenticated`
 - enables RLS
 - creates a public read policy
-- inserts 4 dummy project rows
+- inserts 8 dummy project rows
 
 If the table does not exist yet, the app shows a setup/error state instead of project cards.
