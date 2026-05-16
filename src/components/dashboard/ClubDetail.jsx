@@ -9,6 +9,12 @@ import MetricCharts from "./MetricCharts";
 import SolutionPanel from "./SolutionPanel";
 
 const LAYOUT_BREAKPOINT_PX = 768;
+const PAID_REPORT_PRICE = "월 29,000원";
+const PAYMENT_INITIAL_VALUES = {
+  cardNumber: "",
+  expiry: "",
+  cvc: "",
+};
 
 const statusLabel = {
   in_progress: { label: "진행 중", bg: "#eef2ff", color: "#4f46e5" },
@@ -27,6 +33,15 @@ function getColor(clubId) {
   return palette[(clubId || 0) % palette.length];
 }
 
+function trackPaymentEvent(eventName) {
+  // 이후 구독 전환율/모달 노출 빈도 측정으로 확장하기 위한 mock hook.
+  console.info(`[payment-mock] ${eventName}`);
+}
+
+function isPaymentFormComplete(values) {
+  return values.cardNumber.trim() && values.expiry.trim() && values.cvc.trim();
+}
+
 export default function ClubDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -40,6 +55,11 @@ export default function ClubDetail() {
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [assignedMissions, setAssignedMissions] = useState([]);
+  const [isReportUnlocked, setIsReportUnlocked] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentValues, setPaymentValues] = useState(PAYMENT_INITIAL_VALUES);
+  const [paymentError, setPaymentError] = useState("");
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
   useEffect(() => {
     function onResize() {
@@ -99,6 +119,49 @@ export default function ClubDetail() {
     }
   };
 
+  const openPaymentModal = () => {
+    trackPaymentEvent("modal_open");
+    setPaymentError("");
+    setIsPaymentOpen(true);
+  };
+
+  const closePaymentModal = () => {
+    if (isPaymentProcessing) {
+      return;
+    }
+
+    setIsPaymentOpen(false);
+    setPaymentError("");
+  };
+
+  const handlePaymentChange = (event) => {
+    const { name, value } = event.target;
+    setPaymentValues((currentValues) => ({
+      ...currentValues,
+      [name]: value,
+    }));
+    setPaymentError("");
+  };
+
+  const handlePaymentSubmit = (event) => {
+    event.preventDefault();
+
+    if (!isPaymentFormComplete(paymentValues)) {
+      setPaymentError("카드 정보를 모두 입력해주세요.");
+      return;
+    }
+
+    trackPaymentEvent("payment_attempt");
+    setIsPaymentProcessing(true);
+    window.setTimeout(() => {
+      setIsPaymentProcessing(false);
+      setIsReportUnlocked(true);
+      setIsPaymentOpen(false);
+      setPaymentValues(PAYMENT_INITIAL_VALUES);
+      trackPaymentEvent("payment_success");
+    }, 850);
+  };
+
   const companyHeaderCopy = {
     ...homepageCopy,
     headerActions: homepageCopy.headerActions.filter(action => action.type !== 'startup')
@@ -149,6 +212,7 @@ export default function ClubDetail() {
     title: t.event_name,
     description: t.description || "",
   }));
+  const canSubmitPayment = Boolean(isPaymentFormComplete(paymentValues)) && !isPaymentProcessing;
 
   return (
     <div className="dashboard-page">
@@ -176,9 +240,28 @@ export default function ClubDetail() {
         </div>
 
         <div style={gridStyle}>
-          <div className="dashboard-card">
+          <div className="dashboard-card paid-report-card">
             <p className="dashboard-section-label">마케팅 지표 (mission_metrics)</p>
-            <MetricCharts chartRows={bundle.chartRows} scoreData={bundle.viralVsPeerChart} score={bundle.score} />
+            <div className={`paid-report-content ${isReportUnlocked ? "" : "paid-report-content--locked"}`}>
+              <MetricCharts chartRows={bundle.chartRows} scoreData={bundle.viralVsPeerChart} score={bundle.score} />
+            </div>
+            {!isReportUnlocked ? (
+              <div className="paid-report-overlay" aria-label="유료 성과 리포트 안내">
+                <span className="paid-report-badge">Premium Report</span>
+                <h2>유료 구독 시 열람 가능</h2>
+                <p>
+                  CTR, CPC, 전환율, 참여 평균 대비 스코어까지 캠페인 의사결정에 필요한 성과 리포트를 확인하세요.
+                </p>
+                <button type="button" className="button button-primary paid-report-cta" onClick={openPaymentModal}>
+                  결제하기
+                </button>
+                <small>7일 무료 체험 후 {PAID_REPORT_PRICE} · 언제든 취소 가능</small>
+              </div>
+            ) : (
+              <div className="paid-report-unlocked" role="status">
+                결제되었습니다. 성과 리포트가 열렸습니다.
+              </div>
+            )}
           </div>
 
           <div className="dashboard-card">
@@ -279,6 +362,86 @@ export default function ClubDetail() {
           }}
         />
       </main>
+
+      {isPaymentOpen ? (
+        <div className="payment-modal-backdrop" role="presentation">
+          <section className="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+            <div className="payment-modal-head">
+              <div>
+                <p className="eyebrow">Performance Report Subscription</p>
+                <h2 id="payment-modal-title">성과 리포트 구독</h2>
+              </div>
+              <button type="button" className="payment-modal-close" onClick={closePaymentModal} aria-label="닫기">
+                ×
+              </button>
+            </div>
+
+            <div className="payment-plan-card">
+              <strong>{PAID_REPORT_PRICE}</strong>
+              <span>7일 무료 체험 후 자동 구독 · 언제든 취소 가능</span>
+            </div>
+
+            <ul className="payment-value-list">
+              <li>마케팅 지표 상세 차트와 바이럴 점수 분석</li>
+              <li>타 동아리 평균 대비 성과 비교</li>
+              <li>캠페인 개선 의사결정을 위한 리포트 요약</li>
+            </ul>
+
+            <form className="payment-form" onSubmit={handlePaymentSubmit}>
+              <label>
+                <span>카드 번호</span>
+                <input
+                  name="cardNumber"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
+                  value={paymentValues.cardNumber}
+                  placeholder="1234 5678 9012 3456"
+                  onChange={handlePaymentChange}
+                />
+              </label>
+              <div className="payment-form-row">
+                <label>
+                  <span>만료일(월/년)</span>
+                  <input
+                    name="expiry"
+                    inputMode="numeric"
+                    autoComplete="cc-exp"
+                    value={paymentValues.expiry}
+                    placeholder="MM/YY"
+                    onChange={handlePaymentChange}
+                  />
+                </label>
+                <label>
+                  <span>CVC</span>
+                  <input
+                    name="cvc"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                    value={paymentValues.cvc}
+                    placeholder="123"
+                    onChange={handlePaymentChange}
+                  />
+                </label>
+              </div>
+
+              {paymentError ? (
+                <p className="form-error" role="alert">
+                  {paymentError}
+                </p>
+              ) : null}
+
+              <button type="submit" className="button button-primary button-large submit-button" disabled={!canSubmitPayment}>
+                {isPaymentProcessing ? "결제 처리 중..." : "결제하기"}
+              </button>
+              <button type="button" className="button button-secondary button-large submit-button" onClick={closePaymentModal}>
+                닫기
+              </button>
+            </form>
+
+            <p className="payment-trust-note">카드 정보는 저장되지 않습니다. 이 화면은 실제 결제 API와 연결되지 않은 프로토타입입니다.</p>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
