@@ -364,6 +364,7 @@ export default function ClubDetail() {
           missionId={bundle.mission.mission_id} 
           solutions={bundle.solutions} 
           initialNotices={bundle.notices} 
+          postDescription={bundle.postDescription}
           onAssign={async (form) => {
             const { mission, error } = await assignMissionToMatch({
               matchId: bundle.match.match_id,

@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { generateMissionFromPost } from "../../services/ai.js";
 
 /**
- * marketing_solutions: 기업 선택·전달 (목数据)
+ * marketing_solutions: 기업 선택·전달 (목데이터)
  * notifications: 공지 발송 목록 (notifications 테이블 형식에 맞춘 UI 상태)
  */
-export default function SolutionPanel({ missionId, solutions = [], initialNotices = [], onAssign }) {
+export default function SolutionPanel({ missionId, solutions = [], initialNotices = [], postDescription, onAssign }) {
   const [selected, setSelected] = useState([]);
 
   const [noticeTitle, setNoticeTitle] = useState("");
@@ -21,6 +22,7 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
   const [missionSent, setMissionSent] = useState(false);
   const [missionError, setMissionError] = useState("");
   const [showMetricInput, setShowMetricInput] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
   function toggleSol(id) {
     const isSelected = selected.includes(id);
@@ -93,8 +95,32 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
     setTimeout(() => setNoticeSent(false), 2500);
   }
 
-  function handleAiRecommendMission() {
-    window.alert("AI 추천 기능은 추후 지원될 예정입니다.");
+  async function handleAiRecommendMission() {
+    if (!postDescription) {
+      window.alert("공고 내용이 없습니다. 먼저 캠페인 공고를 작성해주세요.");
+      return;
+    }
+    
+    setIsGeneratingAi(true);
+    setMissionError("");
+    
+    try {
+      const generated = await generateMissionFromPost(postDescription);
+      setMissionForm({
+        title: generated.title || "",
+        description: generated.description || "",
+        deadline: generated.deadline || "",
+        delayBuffer: generated.delayBuffer || "",
+        targetMetric: String(generated.targetMetric || "")
+      });
+      if (generated.targetMetric) {
+        setShowMetricInput(true);
+      }
+    } catch (err) {
+      setMissionError(err.message);
+    } finally {
+      setIsGeneratingAi(false);
+    }
   }
 
   return (
@@ -138,12 +164,8 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
         <div className="dashboard-field-block" style={{ marginTop: '24px' }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
             <p className="dashboard-input-label" style={{ margin: 0 }}>직접 입력 / 기타 미션</p>
-            <button
-              type="button"
-              className="ai-recommend-btn"
-              onClick={handleAiRecommendMission}
-            >
-              ✨ AI로 미션 추천받기
+            <button type="button" className="ai-recommend-btn" onClick={handleAiRecommendMission} disabled={isGeneratingAi}>
+              {isGeneratingAi ? "AI 추천 중..." : "✨ AI로 미션 추천받기"}
             </button>
           </div>
           
