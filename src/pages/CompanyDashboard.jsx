@@ -28,6 +28,36 @@ const postStatusLabel = {
   closed: { label: "마감", bg: "#f1f5f9", color: "#64748b" },
 };
 
+const formatPostDate = (value) => {
+  if (!value) return "미정";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(value));
+};
+
+const formatBoolean = (value) => (value ? "제공" : "미제공");
+
+function DetailRow({ label, value }) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="post-detail-row">
+      <dt>{label}</dt>
+      <dd>{Array.isArray(value) ? value.join(", ") : value}</dd>
+    </div>
+  );
+}
+
 function averageMissionPct(rows) {
   const pcts = rows.flatMap((c) => (c.missions ?? []).map((m) => m.pct));
   if (!pcts.length) return 0;
@@ -51,6 +81,7 @@ export default function CompanyDashboard() {
   const [loading, setLoading] = useState(true);
   const [authReady, setAuthReady] = useState(false);
   const [dashboardError, setDashboardError] = useState('');
+  const [selectedPost, setSelectedPost] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -179,6 +210,10 @@ export default function CompanyDashboard() {
     navigate(`/dashboard/company/club/${clubId}`);
   }
 
+  const closePostDetail = () => {
+    setSelectedPost(null);
+  };
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-header-shell">
@@ -235,7 +270,19 @@ export default function CompanyDashboard() {
                     const reward = post.reward_and_condition || {};
                     const pill = postStatusLabel[post.status] || postStatusLabel.open;
                     return (
-                      <div key={post.id} className="post-card">
+                      <article
+                        key={post.id}
+                        className="post-card post-card--clickable"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedPost(post)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedPost(post);
+                          }
+                        }}
+                      >
                         <div className="post-card-header">
                           <div>
                             <span className="post-card-company">{compInfo.companyName || '기업'}</span>
@@ -256,12 +303,15 @@ export default function CompanyDashboard() {
                           <button
                             type="button"
                             className="button button-secondary"
-                            onClick={() => navigate(`/dashboard/company/post/${post.id}/applications`)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/dashboard/company/post/${post.id}/applications`);
+                            }}
                           >
                             지원서 보기
                           </button>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -371,6 +421,108 @@ export default function CompanyDashboard() {
           </>
         )}
       </main>
+
+      {selectedPost ? (
+        <div className="auth-backdrop post-detail-backdrop" role="presentation" onMouseDown={closePostDetail}>
+          <section
+            className="post-detail-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="post-detail-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            {(() => {
+              const companyInfo = selectedPost.company_info || {};
+              const projectInfo = selectedPost.project_info || {};
+              const rewardInfo = selectedPost.reward_and_condition || {};
+              const missionInfo = selectedPost.mission_info || {};
+              const statusMeta = postStatusLabel[selectedPost.status] || postStatusLabel.open;
+
+              return (
+                <>
+                  <div className="post-detail-top">
+                    <div>
+                      <p className="eyebrow">Campaign Post</p>
+                      <h2 id="post-detail-title">{projectInfo.title || "제목 없는 공고"}</h2>
+                      <p>
+                        {companyInfo.serviceName || companyInfo.companyName || "기업"} · {formatPostDate(selectedPost.created_at)}
+                      </p>
+                    </div>
+                    <button className="auth-close" type="button" onClick={closePostDetail} aria-label="공고 상세 닫기">
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="post-detail-status-line">
+                    <span className="dashboard-pill" style={{ background: statusMeta.bg, color: statusMeta.color }}>
+                      {statusMeta.label}
+                    </span>
+                    {companyInfo.category ? <span>{companyInfo.category}</span> : null}
+                    {projectInfo.workMode ? <span>{projectInfo.workMode}</span> : null}
+                  </div>
+
+                  <div className="post-detail-section">
+                    <h3>기업 정보</h3>
+                    <dl className="post-detail-grid">
+                      <DetailRow label="기업명" value={companyInfo.companyName} />
+                      <DetailRow label="서비스명" value={companyInfo.serviceName} />
+                      <DetailRow label="한 줄 소개" value={companyInfo.tagline} />
+                      <DetailRow label="웹사이트" value={companyInfo.websiteUrl} />
+                      <DetailRow label="기업 설명" value={companyInfo.description} />
+                    </dl>
+                  </div>
+
+                  <div className="post-detail-section">
+                    <h3>프로젝트 정보</h3>
+                    <dl className="post-detail-grid">
+                      <DetailRow label="목적" value={projectInfo.purpose} />
+                      <DetailRow label="모집 대상" value={projectInfo.target} />
+                      <DetailRow label="활동 유형" value={projectInfo.activityTypes} />
+                      <DetailRow label="활동 기간" value={projectInfo.period} />
+                      <DetailRow label="모집 마감일" value={projectInfo.deadline} />
+                    </dl>
+                  </div>
+
+                  <div className="post-detail-section">
+                    <h3>보상 및 조건</h3>
+                    <dl className="post-detail-grid">
+                      <DetailRow label="모집 규모" value={rewardInfo.recruitCount ? `${rewardInfo.recruitCount}팀` : ""} />
+                      <DetailRow label="활동 지역" value={rewardInfo.regions} />
+                      <DetailRow label="보상" value={rewardInfo.rewardSummary} />
+                      <DetailRow label="활동 예산" value={rewardInfo.activityBudget} />
+                      <DetailRow label="성과 보너스" value={rewardInfo.performanceBonus} />
+                      <DetailRow label="인증서" value={formatBoolean(rewardInfo.certificate)} />
+                      <DetailRow label="네트워킹" value={formatBoolean(rewardInfo.networking)} />
+                      <DetailRow label="인턴십 연계" value={formatBoolean(rewardInfo.internshipLinked)} />
+                    </dl>
+                  </div>
+
+                  <div className="post-detail-section">
+                    <h3>미션 메모</h3>
+                    <dl className="post-detail-grid">
+                      <DetailRow label="우대 조건" value={missionInfo.preferredQualifications} />
+                      <DetailRow label="추가 메모" value={missionInfo.notes} />
+                    </dl>
+                  </div>
+
+                  <div className="post-detail-actions">
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => navigate(`/dashboard/company/post/${selectedPost.id}/applications`)}
+                    >
+                      지원서 보기
+                    </button>
+                    <button type="button" className="button button-secondary" onClick={closePostDetail}>
+                      닫기
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

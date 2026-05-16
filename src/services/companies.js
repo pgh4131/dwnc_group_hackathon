@@ -240,9 +240,90 @@ export async function fetchApplicationsForPost(postId) {
   return { applications: data || [], error: error?.message || null };
 }
 
-export async function acceptApplication(companyId, application) {
+const buildCompanyPayloadFromPost = (post, fallbackEmail = '') => {
+  const companyInfo = post?.company_info || {};
+
+  return {
+    name: companyInfo.companyName || companyInfo.serviceName || '기업',
+    industry: companyInfo.category || '',
+    description: companyInfo.description || companyInfo.tagline || '',
+    contact_email: fallbackEmail,
+  };
+};
+
+async function ensureCompanyForAcceptance(companyId, post) {
+  if (companyId) return { company: { company_id: companyId }, error: null };
+
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { company: null, error: '로그인 필요' };
+
+  const existing = await fetchCompanyByOwner();
+  if (existing.company) return existing;
+  if (existing.error && existing.error !== '로그인 필요') {
+    return existing;
+  }
+
+  const payload = {
+    ...buildCompanyPayloadFromPost(post, session.user.email || ''),
+    owner_id: session.user.id,
+  };
+
+  const { data, error } = await supabase
+    .from('companies')
+    .insert(payload)
+    .select()
+    .single();
+
+  return { company: data, error: error?.message || null };
+}
+
+async function createDefaultMission({ match, post, clubId }) {
+  const supabase = createClient();
+  const projectInfo = post?.project_info || {};
+  const missionInfo = post?.mission_info || {};
+
+  const { data: mission, error: missionError } = await supabase
+    .from('missions')
+    .insert({
+      match_id: match.match_id,
+      mission_name: projectInfo.title || '캠퍼스 마케팅 프로젝트',
+      mission_description:
+        missionInfo.notes ||
+        projectInfo.purpose ||
+        '기업이 선택한 지원서로 시작된 캠퍼스 마케팅 프로젝트입니다.',
+      objective_kpi: projectInfo.target || '캠페인 성과 제출',
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: projectInfo.deadline || null,
+      status: 'in_progress',
+    })
+    .select()
+    .single();
+
+  if (missionError) return { mission: null, error: missionError.message };
+
+  const { error: progressError } = await supabase
+    .from('mission_progress')
+    .insert({
+      mission_id: mission.mission_id,
+      club_id: clubId,
+      progress_percent: 0,
+      status: 'in_progress',
+    });
+
+  if (progressError) return { mission: null, error: progressError.message };
+
+  return { mission, error: null };
+}
+
+export async function acceptApplication(companyId, application, post = null) {
   if (!isSupabaseConfigured) return { match: null, error: 'Supabase 미설정' };
   const supabase = createClient();
+  const { company, error: companyError } = await ensureCompanyForAcceptance(companyId, post);
+
+  if (companyError || !company) {
+    return { match: null, error: companyError || '기업 정보를 확인하지 못했습니다.' };
+  }
 
   const clubInfo = application.club_info || {};
   const clubName = clubInfo.officialName || clubInfo.clubName || '알 수 없는 동아리';
@@ -266,7 +347,7 @@ export async function acceptApplication(companyId, application) {
   const { data: match, error: matchError } = await supabase
     .from('club_company_match')
     .insert({
-      company_id: companyId,
+      company_id: company.company_id,
       club_id: club.club_id,
       status: 'in_progress',
       start_date: new Date().toISOString().split('T')[0],
@@ -276,11 +357,17 @@ export async function acceptApplication(companyId, application) {
 
   if (matchError) return { match: null, error: matchError.message };
 
-  // 3. student_applications status → accepted
-  await supabase
+  // 3. 기본 미션 생성: 기업/학생 대시보드에서 선택된 프로젝트가 즉시 보이도록 연결한다.
+  const { error: missionError } = await createDefaultMission({ match, post, clubId: club.club_id });
+  if (missionError) return { match: null, error: missionError };
+
+  // 4. student_applications status → accepted
+  const { error: applicationError } = await supabase
     .from('student_applications')
     .update({ status: 'accepted', updated_at: new Date().toISOString() })
     .eq('id', application.id);
 
-  return { match, club, error: null };
+  if (applicationError) return { match: null, error: applicationError.message };
+
+  return { match, club, company, error: null };
 }

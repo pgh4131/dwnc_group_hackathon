@@ -39,6 +39,12 @@ const expectedOutcomeOptions = [
   '기타',
 ];
 
+const applicationStatusMeta = {
+  pending: { label: '검토 중', tone: 'warning' },
+  accepted: { label: '선택됨', tone: 'success' },
+  rejected: { label: '미선택', tone: 'muted' },
+};
+
 const linkFields = [
   ['instagramUrl', '인스타그램 URL', 'https://instagram.com/club'],
   ['youtubeUrl', '유튜브 URL', 'https://youtube.com/@club'],
@@ -203,6 +209,7 @@ export default function StudentApplicationPage() {
   });
   const [submittedApplication, setSubmittedApplication] = useState(null);
   const isSubmitted = Boolean(submittedApplication);
+  const submittedStatus = applicationStatusMeta[submittedApplication?.status] || applicationStatusMeta.pending;
   const isMissingProject = !projectId;
   const isAuthenticated = Boolean(session);
   const isStartupAccount = accountType === 'startup';
@@ -281,7 +288,7 @@ export default function StudentApplicationPage() {
       });
 
       const nextProject = result.project || createProjectPlaceholder(projectId);
-      const application = await getStudentApplicationByProjectId(projectId, nextProject);
+      const application = await getStudentApplicationByProjectId(projectId, nextProject, { session });
 
       if (isMounted) {
         setSubmittedApplication(application);
@@ -293,7 +300,7 @@ export default function StudentApplicationPage() {
     return () => {
       isMounted = false;
     };
-  }, [projectId]);
+  }, [projectId, session]);
 
   const completedRequiredCount = useMemo(() => {
     const textCount = requiredTextFields.filter(([field]) => String(values[field]).trim()).length;
@@ -535,10 +542,17 @@ export default function StudentApplicationPage() {
               <p className="eyebrow">Application Submitted</p>
               <h2>지원이 완료되었습니다</h2>
               <p>
-                이 공고에 대한 지원서가 접수되었습니다. 같은 공고에는 다시 제출할 수 없고,
-                다른 공고는 공고 상세에서 별도로 지원할 수 있습니다.
+                이 공고에 대한 지원서가 접수되었습니다. 기업이 지원서를 선택하면 상태가 자동으로 반영됩니다.
               </p>
               <dl className="student-application-receipt" aria-label="지원서 접수 정보">
+                <div>
+                  <dt>진행 상태</dt>
+                  <dd>
+                    <span className={`student-status-badge student-status-badge--${submittedStatus.tone}`}>
+                      {submittedStatus.label}
+                    </span>
+                  </dd>
+                </div>
                 <div>
                   <dt>지원 공고</dt>
                   <dd>{submittedApplication.project?.title || projectState.project?.title}</dd>
