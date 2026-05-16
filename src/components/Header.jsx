@@ -1,9 +1,12 @@
+import { Link } from 'react-router-dom';
+
 export default function Header({
   copy,
   isAuthenticated = false,
   userEmail = '',
   onLoginClick,
   onLogoutClick,
+  extraHeaderActions = null,
 }) {
   const navigationItems = isAuthenticated
     ? [...copy.navigation, ...copy.authenticatedNavigation]
@@ -11,21 +14,21 @@ export default function Header({
 
   return (
     <header className="site-header">
-      <a className="brand" href="/" aria-label={`${copy.serviceName} 홈`}>
+      <Link className="brand" to="/" aria-label={`${copy.serviceName} 홈`}>
         <span className="brand-mark">CB</span>
         <span>{copy.serviceName}</span>
-      </a>
+      </Link>
 
       {navigationItems.length > 0 ? (
         <nav className="main-nav" aria-label="주요 메뉴">
           {navigationItems.map((item) => (
-            <a key={item.href} href={item.href}>
+            <Link key={item.href} to={item.href}>
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
       ) : (
-        <div />
+        <div className="header-nav-spacer" aria-hidden="true" />
       )}
 
       <div className="header-actions">
@@ -54,11 +57,12 @@ export default function Header({
           }
 
           return (
-            <a key={action.href} className={`button button-${action.variant}`} href={action.href}>
+            <Link key={action.href} className={`button button-${action.variant}`} to={action.href}>
               {action.label}
-            </a>
+            </Link>
           );
         })}
+        {extraHeaderActions}
       </div>
     </header>
   );

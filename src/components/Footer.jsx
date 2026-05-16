@@ -6,7 +6,7 @@ export default function Footer({ copy, serviceName }) {
           <strong>{serviceName}</strong>
           <p>{copy.description}</p>
         </div>
-        <span>Hackathon MVP</span>
+        <span className="footer-badge">{copy.badge}</span>
       </div>
     </footer>
   );
