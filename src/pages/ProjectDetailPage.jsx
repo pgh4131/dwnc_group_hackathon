@@ -36,7 +36,7 @@ export default function ProjectDetailPage() {
   const [accountType, setAccountType] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authNotice, setAuthNotice] = useState('');
-  const [hasClubProfile] = useState(() => hasStudentClubProfile());
+  const [hasClubProfile, setHasClubProfile] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,6 +47,7 @@ export default function ProjectDetailPage() {
       if (isMounted) {
         setSession(result.session);
         setAccountType(await getAccountType(result.session));
+        setHasClubProfile(hasStudentClubProfile(result.session));
       }
     }
 
@@ -54,6 +55,7 @@ export default function ProjectDetailPage() {
     const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
       setAccountType(await getAccountType(nextSession));
+      setHasClubProfile(hasStudentClubProfile(nextSession));
     });
 
     return () => {

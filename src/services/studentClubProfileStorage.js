@@ -1,5 +1,13 @@
 const STORAGE_KEY = 'campusBridge.studentClubProfile';
-let memoryClubProfile = null;
+const memoryClubProfiles = new Map();
+
+const getProfileStorageKey = (sessionOrUserId) => {
+  const userId = typeof sessionOrUserId === 'string'
+    ? sessionOrUserId
+    : sessionOrUserId?.user?.id;
+
+  return userId ? `${STORAGE_KEY}.${userId}` : null;
+};
 
 const getBrowserStorage = () => {
   if (typeof window === 'undefined') {
@@ -16,15 +24,21 @@ const getBrowserStorage = () => {
 
 export const studentClubProfileStorageKey = STORAGE_KEY;
 
-export const getStudentClubProfile = () => {
+export const getStudentClubProfile = (sessionOrUserId = null) => {
+  const storageKey = getProfileStorageKey(sessionOrUserId);
+
+  if (!storageKey) {
+    return null;
+  }
+
   const storage = getBrowserStorage();
 
   if (!storage) {
-    return memoryClubProfile;
+    return memoryClubProfiles.get(storageKey) || null;
   }
 
   try {
-    const storedValue = storage.getItem(STORAGE_KEY);
+    const storedValue = storage.getItem(storageKey);
     return storedValue ? JSON.parse(storedValue) : null;
   } catch (error) {
     console.error('Failed to read student club profile from localStorage.', error);
@@ -32,12 +46,18 @@ export const getStudentClubProfile = () => {
   }
 };
 
-export const saveStudentClubProfile = (profile) => {
+export const saveStudentClubProfile = (profile, sessionOrUserId = null) => {
+  const storageKey = getProfileStorageKey(sessionOrUserId);
   const nextProfile = {
     ...profile,
     updatedAt: new Date().toISOString(),
   };
-  memoryClubProfile = nextProfile;
+
+  if (!storageKey) {
+    return nextProfile;
+  }
+
+  memoryClubProfiles.set(storageKey, nextProfile);
 
   const storage = getBrowserStorage();
 
@@ -46,7 +66,7 @@ export const saveStudentClubProfile = (profile) => {
   }
 
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(nextProfile));
+    storage.setItem(storageKey, JSON.stringify(nextProfile));
   } catch (error) {
     console.error('Failed to write student club profile to localStorage.', error);
   }
@@ -54,8 +74,8 @@ export const saveStudentClubProfile = (profile) => {
   return nextProfile;
 };
 
-export const hasStudentClubProfile = () => {
-  const profile = getStudentClubProfile();
+export const hasStudentClubProfile = (sessionOrUserId = null) => {
+  const profile = getStudentClubProfile(sessionOrUserId);
 
   return Boolean(
     profile?.clubName?.trim() &&
