@@ -4,6 +4,7 @@ import Header from "../Header.jsx";
 import { homepageCopy } from "../../data/homepage.js";
 import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from "../../services/auth.js";
 import { fetchCompanyByOwner, fetchClubDashboardBundle } from "../../services/companies.js";
+import { assignMissionToMatch } from "../../services/missions.js";
 import MetricCharts from "./MetricCharts";
 import SolutionPanel from "./SolutionPanel";
 
@@ -78,6 +79,7 @@ export default function ClubDetail() {
       const data = await fetchClubDashboardBundle(Number(id), company.company_id);
       if (isMounted) {
         setBundle(data);
+        setAssignedMissions(data?.missions || []);
         setLoading(false);
       }
     }
@@ -253,10 +255,24 @@ export default function ClubDetail() {
           missionId={bundle.mission.mission_id} 
           solutions={bundle.solutions} 
           initialNotices={bundle.notices} 
-          onAssign={(form) => {
+          onAssign={async (form) => {
+            const { mission, error } = await assignMissionToMatch({
+              matchId: bundle.match.match_id,
+              clubId: club.club_id,
+              title: form.title,
+              description: form.description,
+              deadline: form.deadline,
+              delayBuffer: form.delayBuffer,
+              targetMetric: form.targetMetric,
+            });
+
+            if (error) {
+              throw new Error(error);
+            }
+
             setAssignedMissions(prev => [...prev, {
-              id: Date.now(),
-              name: form.title || "제목 없는 미션",
+              id: mission.mission_id,
+              name: mission.mission_name || form.title || "제목 없는 미션",
               pct: 0,
               done: false
             }]);

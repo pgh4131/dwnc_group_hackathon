@@ -438,6 +438,8 @@ CREATE TABLE IF NOT EXISTS public.student_applications (
   id              TEXT PRIMARY KEY,
   owner_id        UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   post_id         TEXT REFERENCES public.campaign_posts(id) ON DELETE SET NULL,
+  match_id        INT REFERENCES public.club_company_match(match_id) ON DELETE SET NULL,
+  accepted_club_id INT REFERENCES public.clubs(club_id) ON DELETE SET NULL,
   status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','rejected')),
   club_info       JSONB NOT NULL DEFAULT '{}',
   representative  JSONB NOT NULL DEFAULT '{}',
@@ -446,6 +448,10 @@ CREATE TABLE IF NOT EXISTS public.student_applications (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.student_applications
+  ADD COLUMN IF NOT EXISTS match_id INT REFERENCES public.club_company_match(match_id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS accepted_club_id INT REFERENCES public.clubs(club_id) ON DELETE SET NULL;
 
 ALTER TABLE public.student_applications ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON public.student_applications TO authenticated;
