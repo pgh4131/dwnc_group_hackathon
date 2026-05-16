@@ -60,6 +60,7 @@ export default function ClubDetail() {
 
   const [session, setSession] = useState(null);
   const [accountType, setAccountType] = useState(null);
+  const [assignedMissions, setAssignedMissions] = useState([]);
 
   useEffect(() => {
     function onResize() {
@@ -216,34 +217,50 @@ export default function ClubDetail() {
               <p className="dashboard-section-label dashboard-section-label--tight">
                 산출물·진행 (mission_deliverables / mission_progress)
               </p>
-              {bundle.missions.map((m) => {
-                const delayed = !m.done && m.pct > 0 && m.pct < 45;
-                return (
-                  <div
-                    key={m.id}
-                    className={`dashboard-mission-row ${delayed ? "dashboard-mission-row--delayed" : ""}`}
-                  >
-                  <div className={`dashboard-checkbox ${m.done ? "dashboard-checkbox--done" : ""}`} aria-hidden>
-                    {m.done ? "✓" : ""}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="dashboard-mission-name">{m.name}</div>
-                    <div className="dashboard-progress-track">
-                      <div
-                        className="dashboard-progress-fill"
-                        style={{ width: `${m.pct}%`, background: col.line }}
-                      />
+              {assignedMissions.length === 0 ? (
+                <p className="dashboard-lead" style={{ marginTop: 12 }}>아직 등록된 미션이 없습니다.</p>
+              ) : (
+                assignedMissions.map((m) => {
+                  const delayed = !m.done && m.pct > 0 && m.pct < 45;
+                  return (
+                    <div
+                      key={m.id}
+                      className={`dashboard-mission-row ${delayed ? "dashboard-mission-row--delayed" : ""}`}
+                    >
+                    <div className={`dashboard-checkbox ${m.done ? "dashboard-checkbox--done" : ""}`} aria-hidden>
+                      {m.done ? "✓" : ""}
                     </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="dashboard-mission-name">{m.name}</div>
+                      <div className="dashboard-progress-track">
+                        <div
+                          className="dashboard-progress-fill"
+                          style={{ width: `${m.pct}%`, background: col.line }}
+                        />
+                      </div>
+                    </div>
+                    <span className="dashboard-mission-pct">{m.pct}%</span>
                   </div>
-                  <span className="dashboard-mission-pct">{m.pct}%</span>
-                </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
 
-        <SolutionPanel missionId={bundle.mission.mission_id} solutions={bundle.solutions} initialNotices={bundle.notices} />
+        <SolutionPanel 
+          missionId={bundle.mission.mission_id} 
+          solutions={bundle.solutions} 
+          initialNotices={bundle.notices} 
+          onAssign={(form) => {
+            setAssignedMissions(prev => [...prev, {
+              id: Date.now(),
+              name: form.title || "제목 없는 미션",
+              pct: 0,
+              done: false
+            }]);
+          }}
+        />
       </main>
     </div>
   );
