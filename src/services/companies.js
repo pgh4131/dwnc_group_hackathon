@@ -215,6 +215,65 @@ export async function fetchClubDashboardBundle(clubId, companyId) {
     : (match.status === 'pending_review' || match.status === 'scheduled') ? 'pending_review'
     : 'in_progress';
 
+  // 1) match_id로 연결된 지원서 → post_id 찾기
+  const { data: studentApp } = await supabase
+    .from('student_applications')
+    .select('post_id')
+    .eq('match_id', match.match_id)
+    .limit(1)
+    .maybeSingle();
+
+  let postId = studentApp?.post_id || null;
+
+  // 2) fallback: 지원서에 연결이 없으면 company owner의 공고를 직접 찾기
+  if (!postId) {
+    const { data: companyRow } = await supabase
+      .from('companies')
+      .select('owner_id')
+      .eq('company_id', companyId)
+      .maybeSingle();
+    if (companyRow?.owner_id) {
+      const { data: ownedPost } = await supabase
+        .from('campaign_posts')
+        .select('id')
+        .eq('owner_id', companyRow.owner_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      postId = ownedPost?.id || null;
+    }
+  }
+
+  let postDescription = '';
+  if (postId) {
+    const { data: post } = await supabase
+      .from('campaign_posts')
+      .select('company_info, project_info, mission_info, reward_and_condition')
+      .eq('id', postId)
+      .maybeSingle();
+    if (post) {
+      const ci = post.company_info || {};
+      const pi = post.project_info || {};
+      const mi = post.mission_info || {};
+      const rc = post.reward_and_condition || {};
+      postDescription = [
+        ci.companyName && `기업명: ${ci.companyName}`,
+        ci.serviceName && `서비스명: ${ci.serviceName}`,
+        ci.description && `기업 소개: ${ci.description}`,
+        ci.category && `카테고리: ${ci.category}`,
+        pi.title && `프로젝트 제목: ${pi.title}`,
+        pi.purpose && `프로젝트 목적: ${pi.purpose}`,
+        pi.target && `타겟 대상: ${pi.target}`,
+        pi.period && `활동 기간: ${pi.period}`,
+        pi.deadline && `마감일: ${pi.deadline}`,
+        pi.activityTypes && `활동 유형: ${pi.activityTypes.join(', ')}`,
+        mi.notes && `미션 참고사항: ${mi.notes}`,
+        mi.preferredQualifications && `우대 조건: ${mi.preferredQualifications}`,
+        rc.reward && `보상: ${rc.reward}`,
+      ].filter(Boolean).join('\n');
+    }
+  }
+
   return {
     club: { id: club.club_id, club_id: club.club_id, name: club.name, initials, university: club.university },
     match,
@@ -236,6 +295,7 @@ export async function fetchClubDashboardBundle(clubId, companyId) {
     missionTitle: mission?.mission_name || '미션 대기 중',
     missionDescription: mission?.mission_description || '아직 등록된 미션이 없습니다. 새 미션을 추가해주세요.',
     objectiveKpi: mission?.objective_kpi || '',
+    postDescription,
   };
 }
 
