@@ -201,9 +201,7 @@ export default function StudentApplicationPage() {
     isLoading: false,
     error: null,
   });
-  const [submittedApplication, setSubmittedApplication] = useState(() =>
-    projectId ? getStudentApplicationByProjectId(projectId) : null,
-  );
+  const [submittedApplication, setSubmittedApplication] = useState(null);
   const isSubmitted = Boolean(submittedApplication);
   const isMissingProject = !projectId;
   const isAuthenticated = Boolean(session);
@@ -252,9 +250,8 @@ export default function StudentApplicationPage() {
   }, []);
 
   useEffect(() => {
-    setSubmittedApplication(projectId ? getStudentApplicationByProjectId(projectId) : null);
-
     if (!projectId) {
+      setSubmittedApplication(null);
       setProjectState({
         project: null,
         isLoading: false,
@@ -282,6 +279,13 @@ export default function StudentApplicationPage() {
         isLoading: false,
         error: result.error,
       });
+
+      const nextProject = result.project || createProjectPlaceholder(projectId);
+      const application = await getStudentApplicationByProjectId(projectId, nextProject);
+
+      if (isMounted) {
+        setSubmittedApplication(application);
+      }
     }
 
     loadProject();
@@ -329,7 +333,7 @@ export default function StudentApplicationPage() {
     setErrors((currentErrors) => ({ ...currentErrors, [name]: undefined }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (isSubmitted || isBlocked) {
@@ -343,9 +347,10 @@ export default function StudentApplicationPage() {
       return;
     }
 
-    const createdApplication = createStudentApplication(
+    const createdApplication = await createStudentApplication(
       values,
       projectState.project || createProjectPlaceholder(projectId),
+      { session },
     );
     setSubmittedApplication(createdApplication);
   };

@@ -1,18 +1,4 @@
-const STORAGE_KEY = 'campusBridge.campaignPosts';
-let memoryPosts = [];
-
-const getBrowserStorage = () => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.localStorage || null;
-  } catch (error) {
-    console.error('Failed to access localStorage.', error);
-    return null;
-  }
-};
+import { createClient, isSupabaseConfigured } from '../utils/supabase/client.js';
 
 const createId = (title, createdAt) => {
   const normalizedTitle = title
@@ -21,96 +7,157 @@ const createId = (title, createdAt) => {
     .replace(/[^a-z0-9가-힣]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 42);
-
   const suffix = new Date(createdAt).getTime().toString(36);
-
   return `${normalizedTitle || 'campaign-post'}-${suffix}`;
 };
 
-const readPosts = () => {
-  const storage = getBrowserStorage();
+const withTimeout = (promise, message, timeoutMs = 12000) => {
+  let timeoutId;
 
-  if (!storage) {
-    return memoryPosts;
-  }
+  const timeout = new Promise((_, reject) => {
+    timeoutId = globalThis.setTimeout(() => {
+      reject(new Error(message));
+    }, timeoutMs);
+  });
 
-  try {
-    const storedValue = storage.getItem(STORAGE_KEY);
-    return storedValue ? JSON.parse(storedValue) : [];
-  } catch (error) {
-    console.error('Failed to read campaign posts from localStorage.', error);
+  return Promise.race([promise, timeout]).finally(() => {
+    globalThis.clearTimeout(timeoutId);
+  });
+};
+
+export const getCampaignPosts = async () => {
+  if (!isSupabaseConfigured) return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('campaign_posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to fetch campaign posts:', error.message);
     return [];
   }
+
+  return data || [];
 };
 
-const writePosts = (posts) => {
-  memoryPosts = posts;
-  const storage = getBrowserStorage();
+export const getMyCampaignPosts = async () => {
+  if (!isSupabaseConfigured) return [];
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
 
-  if (!storage) {
-    return;
+  const { data, error } = await supabase
+    .from('campaign_posts')
+    .select('*')
+    .eq('owner_id', session.user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to fetch my campaign posts:', error.message);
+    return [];
   }
 
-  try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(posts));
-  } catch (error) {
-    console.error('Failed to write campaign posts to localStorage.', error);
-  }
+  return data || [];
 };
 
-export const campaignPostStorageKey = STORAGE_KEY;
+export const getCampaignPostById = async (postId) => {
+  if (!isSupabaseConfigured) return null;
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('campaign_posts')
+    .select('*')
+    .eq('id', postId)
+    .maybeSingle();
 
-export const getCampaignPosts = () => readPosts();
+  if (error) {
+    console.error('Failed to fetch campaign post:', error.message);
+    return null;
+  }
 
-export const getCampaignPostById = (postId) =>
-  readPosts().find((post) => post.id === postId) ?? null;
+  return data || null;
+};
 
-export const createCampaignPost = (values) => {
+export const createCampaignPost = async (values, options = {}) => {
   const timestamp = new Date().toISOString();
+  const id = createId(values.title, timestamp);
 
   const post = {
-    id: createId(values.title, timestamp),
+    id,
     status: 'open',
-    company: {
-      companyName: values.companyName.trim(),
-      serviceName: values.serviceName.trim(),
-      tagline: values.tagline.trim(),
-      description: values.companyDescription.trim(),
-      websiteUrl: values.websiteUrl.trim(),
-      category: values.category.trim(),
+    company_info: {
+      companyName: values.companyName?.trim() || '',
+      serviceName: values.serviceName?.trim() || '',
+      tagline: values.tagline?.trim() || '',
+      description: values.companyDescription?.trim() || '',
+      websiteUrl: values.websiteUrl?.trim() || '',
+      category: values.category?.trim() || '',
     },
-    project: {
-      title: values.title.trim(),
-      purpose: values.purpose.trim(),
-      target: values.target.trim(),
-      activityTypes: values.activityTypes,
-      workMode: values.workMode,
-      period: values.period.trim(),
-      deadline: values.deadline,
+    project_info: {
+      title: values.title?.trim() || '',
+      purpose: values.purpose?.trim() || '',
+      target: values.target?.trim() || '',
+      activityTypes: values.activityTypes || [],
+      workMode: values.workMode || '',
+      period: values.period?.trim() || '',
+      deadline: values.deadline || '',
     },
-    rewardAndCondition: {
-      recruitCount: values.recruitCount.trim(),
-      regions: values.regions.trim(),
-      rewardSummary: values.rewardSummary.trim(),
-      activityBudget: values.activityBudget.trim(),
-      performanceBonus: values.performanceBonus.trim(),
-      certificate: values.certificate,
-      networking: values.networking,
-      internshipLinked: values.internshipLinked,
+    reward_and_condition: {
+      recruitCount: values.recruitCount?.trim() || '',
+      regions: values.regions?.trim() || '',
+      rewardSummary: values.rewardSummary?.trim() || '',
+      activityBudget: values.activityBudget?.trim() || '',
+      performanceBonus: values.performanceBonus?.trim() || '',
+      certificate: values.certificate || false,
+      networking: values.networking || false,
+      internshipLinked: values.internshipLinked || false,
     },
-    mission: {
-      mainMission: values.mainMission.trim(),
-      deliverables: values.deliverables,
-      deliverableDescription: values.deliverableDescription.trim(),
-      preferredQualifications: values.preferredQualifications.trim(),
-      notes: values.notes.trim(),
+    mission_info: {
+      preferredQualifications: values.preferredQualifications?.trim() || '',
+      notes: values.notes?.trim() || '',
     },
-    createdAt: timestamp,
-    updatedAt: timestamp,
+    created_at: timestamp,
+    updated_at: timestamp,
   };
 
-  const posts = readPosts();
-  writePosts([post, ...posts]);
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase 환경 변수가 설정되어 있지 않습니다.');
+  }
 
-  return post;
+  const supabase = createClient();
+  let session = options.session || null;
+
+  if (!session) {
+    const result = await withTimeout(
+      supabase.auth.getSession(),
+      '로그인 세션 확인 시간이 초과되었습니다. 다시 로그인해주세요.',
+    );
+    session = result.data.session;
+  }
+
+  if (!session) {
+    throw new Error('공고 등록은 로그인 후 가능합니다.');
+  }
+
+  post.owner_id = session.user.id;
+
+  const { data, error } = await withTimeout(
+    supabase
+      .from('campaign_posts')
+      .insert(post)
+      .select()
+      .single(),
+    '공고 저장 요청 시간이 초과되었습니다. 네트워크 상태를 확인한 뒤 다시 시도해주세요.',
+  );
+
+  if (error) {
+    console.error('Failed to create campaign post:', error.message);
+    throw new Error(`공고 저장에 실패했습니다: ${error.message}`);
+  }
+
+  if (!data?.id) {
+    throw new Error('공고 저장 결과를 확인하지 못했습니다. 새로고침 후 다시 확인해주세요.');
+  }
+
+  return data;
 };

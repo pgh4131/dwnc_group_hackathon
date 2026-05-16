@@ -76,29 +76,31 @@ const getErrorMessage = (error) => {
 
 const normalizeCampaignPostProject = (post) => {
   const tags = [
-    post.company?.category,
-    ...(post.project?.activityTypes || []),
-    ...(post.mission?.deliverables || []),
+    post.company_info?.category,
+    ...(post.project_info?.activityTypes || []),
   ];
 
   return {
     id: String(post.id),
-    startupName: post.company?.serviceName || post.company?.companyName || '스타트업',
-    title: post.project?.title || '제목 없는 프로젝트',
+    startupName: post.company_info?.serviceName || post.company_info?.companyName || '스타트업',
+    title: post.project_info?.title || '제목 없는 프로젝트',
     tags: normalizeTags(tags),
-    period: post.project?.period || '기간 협의',
-    reward: post.rewardAndCondition?.rewardSummary || '보상 협의',
+    period: post.project_info?.period || '기간 협의',
+    reward: post.reward_and_condition?.rewardSummary || '보상 협의',
     status: post.status === 'open' ? '모집중' : post.status || '모집중',
-    createdAt: post.createdAt || null,
-    source: 'local',
-    description: post.project?.purpose || post.company?.description || '',
-    target: post.project?.target || '',
-    deadline: post.project?.deadline || '',
-    mission: post.mission?.mainMission || '',
+    createdAt: post.created_at || null,
+    source: 'campaign_posts',
+    description: post.project_info?.purpose || post.company_info?.description || '',
+    target: post.project_info?.target || '',
+    deadline: post.project_info?.deadline || '',
+    mission: post.mission_info?.notes || post.mission_info?.preferredQualifications || '',
   };
 };
 
-const getLocalProjects = () => getCampaignPosts().map(normalizeCampaignPostProject);
+const getCampaignPostProjects = async () => {
+  const posts = await getCampaignPosts();
+  return posts.map(normalizeCampaignPostProject);
+};
 
 const mergeProjects = (remoteProjects, localProjects) => {
   const localIds = new Set(localProjects.map((project) => project.id));
@@ -109,13 +111,13 @@ const mergeProjects = (remoteProjects, localProjects) => {
 };
 
 export async function fetchProjects() {
-  const localProjects = getLocalProjects();
+  const campaignPostProjects = await getCampaignPostProjects();
 
   if (!isSupabaseConfigured) {
     return {
-      projects: localProjects,
-      source: localProjects.length > 0 ? 'local' : 'unconfigured',
-      error: localProjects.length > 0 ? null : 'Supabase 환경 변수가 설정되지 않았습니다.',
+      projects: campaignPostProjects,
+      source: campaignPostProjects.length > 0 ? 'campaign_posts' : 'unconfigured',
+      error: campaignPostProjects.length > 0 ? null : 'Supabase 환경 변수가 설정되지 않았습니다.',
     };
   }
 
@@ -126,28 +128,28 @@ export async function fetchProjects() {
 
   if (error) {
     return {
-      projects: localProjects,
-      source: localProjects.length > 0 ? 'local' : 'supabase-error',
-      error: localProjects.length > 0 ? null : getErrorMessage(error),
+      projects: campaignPostProjects,
+      source: campaignPostProjects.length > 0 ? 'campaign_posts' : 'supabase-error',
+      error: campaignPostProjects.length > 0 ? null : getErrorMessage(error),
     };
   }
 
   const remoteProjects = (data || []).map(normalizeProject);
 
   return {
-    projects: mergeProjects(remoteProjects, localProjects),
-    source: localProjects.length > 0 ? 'combined' : 'supabase',
+    projects: mergeProjects(remoteProjects, campaignPostProjects),
+    source: campaignPostProjects.length > 0 ? 'combined' : 'supabase',
     error: null,
   };
 }
 
 export async function fetchProjectById(projectId) {
-  const localPost = getCampaignPostById(projectId);
+  const localPost = await getCampaignPostById(projectId);
 
   if (localPost) {
     return {
       project: normalizeCampaignPostProject(localPost),
-      source: 'local',
+      source: 'campaign_posts',
       error: null,
     };
   }
