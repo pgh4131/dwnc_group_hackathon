@@ -1,4 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useState } from "react";
+import { submitMissionDeliverable } from "../../services/missions.js";
 
 const approvalStatusMeta = {
   approved: { label: "승인 완료", tone: "success" },
@@ -24,18 +25,9 @@ function StatusBadge({ status }) {
   return <span className={`student-status-badge student-status-badge--${meta.tone}`}>{meta.label}</span>;
 }
 
-function formatFileSize(size) {
-  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)}MB`;
-  return `${Math.max(1, Math.round(size / 1024))}KB`;
-}
-
-function truncateFileName(name) {
-  if (name.length <= 20) return name;
-  return `${name.slice(0, 17)}...`;
-}
-
 export default function MissionList({ missions, onMissionsChange }) {
-  const fileInputRefs = useRef({});
+  const [inputValues, setInputValues] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const summary = useMemo(() => {
     const total = missions.length || 1;
@@ -50,35 +42,44 @@ export default function MissionList({ missions, onMissionsChange }) {
     };
   }, [missions]);
 
-  function submitApproval(missionId, itemId) {
-    fileInputRefs.current[`${missionId}-${itemId}`]?.click();
-  }
+  async function handleSubmitApproval(mission, itemId) {
+    const content = inputValues[`${mission.id}-${itemId}`];
+    if (!content) return;
 
-  function handleFileChange(event, missionId, itemId) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    setSubmitting(true);
+    const { error, autoApproved } = await submitMissionDeliverable({
+      deliverableId: itemId,
+      missionId: mission.mission_id,
+      clubId: mission.club_id,
+      content,
+      targetMetric: mission.targetMetric
+    });
+    setSubmitting(false);
+
+    if (error) {
+      alert(`제출 실패: ${error}`);
+      return;
+    }
 
     onMissionsChange((rows) =>
-      rows.map((mission) => {
-        if (mission.id !== missionId) return mission;
+      rows.map((m) => {
+        if (m.id !== mission.id) return m;
 
         return calculateMissionProgress({
-          ...mission,
-          approvalItems: mission.approvalItems.map((item) =>
+          ...m,
+          kpiProgress: autoApproved ? 100 : m.kpiProgress,
+          approvalItems: m.approvalItems.map((item) =>
             item.id === itemId
               ? {
                   ...item,
-                  status: "pending",
-                  fileName: file.name,
-                  fileSize: file.size,
+                  status: autoApproved ? "approved" : "pending",
+                  submissionContent: content,
                 }
               : item,
           ),
         });
       }),
     );
-
-    event.target.value = "";
   }
 
   return (
@@ -96,7 +97,7 @@ export default function MissionList({ missions, onMissionsChange }) {
       <div className="student-kpi-split">
         <div>
           <span>KPI 달성률은 성과 지표 기준</span>
-          <strong>{Math.round(missions.reduce((sum, m) => sum + m.kpiProgress, 0) / missions.length)}%</strong>
+          <strong>{Math.round(missions.reduce((sum, m) => sum + m.kpiProgress, 0) / (missions.length || 1))}%</strong>
         </div>
         <div>
           <span>기업 승인 완료</span>
@@ -150,33 +151,41 @@ export default function MissionList({ missions, onMissionsChange }) {
             <div className="student-approval-list">
               {mission.approvalItems.map((item) => {
                 const canSubmit = item.status === "not_submitted" || item.status === "revision";
+                const isMetric = mission.targetMetric != null;
+                const inputKey = `${mission.id}-${item.id}`;
+                const val = inputValues[inputKey] ?? (item.submissionContent || "");
+
                 return (
-                  <div key={item.id} className="student-approval-row">
-                    <div>
-                      <strong>{item.label}</strong>
-                      <StatusBadge status={item.status} />
-                      {item.fileName ? (
-                        <span className="student-file-meta">
-                          {truncateFileName(item.fileName)} · {formatFileSize(item.fileSize)}
-                        </span>
-                      ) : null}
+                  <div key={item.id} className="student-approval-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong>{item.label}</strong>
+                        <StatusBadge status={item.status} />
+                      </div>
+                      <button
+                        type="button"
+                        className="student-small-btn"
+                        disabled={submitting || (!canSubmit && item.status !== "pending")}
+                        onClick={() => handleSubmitApproval(mission, item.id)}
+                      >
+                        {item.status === 'approved' ? "제출 완료" : canSubmit ? "제출하기" : "수정하여 다시 제출"}
+                      </button>
                     </div>
-                    <input
-                      type="file"
-                      ref={(element) => {
-                        fileInputRefs.current[`${mission.id}-${item.id}`] = element;
-                      }}
-                      style={{ display: "none" }}
-                      accept=".pdf,.jpg,.png,.mp4,.zip"
-                      onChange={(event) => handleFileChange(event, mission.id, item.id)}
-                    />
-                    <button
-                      type="button"
-                      className="student-small-btn"
-                      onClick={() => submitApproval(mission.id, item.id)}
-                    >
-                      {canSubmit ? "콘텐츠 업로드" : item.fileName ? "다시 제출" : "제출 완료"}
-                    </button>
+                    {item.status !== 'approved' && (
+                      <input
+                        type={isMetric ? "number" : "text"}
+                        value={val}
+                        onChange={(e) => setInputValues({ ...inputValues, [inputKey]: e.target.value })}
+                        placeholder={isMetric ? `달성 수치를 입력하세요 (목표: ${mission.targetMetric})` : "수행 결과를 설명하거나 링크를 입력하세요"}
+                        className="dashboard-input dashboard-input--single"
+                        style={{ width: '100%' }}
+                      />
+                    )}
+                    {item.status === 'approved' && item.submissionContent && (
+                      <p className="student-file-meta" style={{ marginTop: '4px' }}>
+                        제출 내용: {item.submissionContent}
+                      </p>
+                    )}
                   </div>
                 );
               })}
