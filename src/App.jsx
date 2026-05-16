@@ -14,6 +14,7 @@ import CompanyDashboard from './pages/CompanyDashboard.jsx';
 import ClubDetail from './components/dashboard/ClubDetail.jsx';
 import StudentDashboardHub from './pages/StudentDashboardHub.jsx';
 import StudentProjectDetail from './pages/StudentProjectDetail.jsx';
+import StudentApplicationPage from './pages/StudentApplicationPage.jsx';
 import PlaceholderPage, { ProjectDetailPlaceholder } from './pages/PlaceholderPage.jsx';
 import { homepageCopy } from './data/homepage.js';
 import {
@@ -158,15 +159,8 @@ export default function App() {
             <PlaceholderPage title="로그인" description="로그인 화면은 추후 구현 예정입니다." />
           }
         />
-        <Route
-          path="/clubs"
-          element={
-            <PlaceholderPage
-              title="동아리/학회용"
-              description="동아리·학회 전용 화면은 추후 구현 예정입니다."
-            />
-          }
-        />
+        <Route path="/clubs" element={<StudentApplicationPage />} />
+        <Route path="/student/apply" element={<StudentApplicationPage />} />
         <Route path="/dashboard/company" element={<CompanyDashboard />} />
         <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
         <Route path="/dashboard/student" element={<StudentDashboardHub />} />
