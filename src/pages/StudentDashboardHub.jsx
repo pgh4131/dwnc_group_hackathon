@@ -2,8 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { homepageCopy } from '../data/homepage.js';
+import {
+  getStudentClubProfile,
+  saveStudentClubProfile,
+} from '../services/studentClubProfileStorage.js';
 
-// TODO: fetch projects from Supabase once club_id is resolved
+// TODO: fetch active club projects from Supabase once club_id is resolved.
 const studentProjectsList = [];
 
 const studentHeaderCopy = {
@@ -14,10 +18,10 @@ const studentHeaderCopy = {
 };
 
 export default function StudentDashboardHub() {
-  const [clubInfo, setClubInfo] = useState(null);
+  const [clubInfo, setClubInfo] = useState(() => getStudentClubProfile());
   const [isEditingClub, setIsEditingClub] = useState(false);
 
-  const [clubForm, setClubForm] = useState({
+  const [clubForm, setClubForm] = useState(() => getStudentClubProfile() || {
     clubName: '',
     university: '',
     owner: '',
@@ -26,7 +30,9 @@ export default function StudentDashboardHub() {
 
   const handleClubSubmit = (e) => {
     e.preventDefault();
-    setClubInfo(clubForm);
+    const savedProfile = saveStudentClubProfile(clubForm);
+    setClubInfo(savedProfile);
+    setClubForm(savedProfile);
     setIsEditingClub(false);
   };
 
@@ -98,10 +104,27 @@ export default function StudentDashboardHub() {
             )}
           </section>
 
+          <section className="hub-panel hub-shortcuts-panel" aria-labelledby="hub-shortcuts-title">
+            <div className="hub-panel-header">
+              <h2 id="hub-shortcuts-title">빠른 이동</h2>
+            </div>
+            <div className="hub-shortcuts">
+              <Link className="button button-primary" to="/dashboard/student/missions">
+                나의 미션 전체 보기
+              </Link>
+              <Link className="button button-secondary" to="/projects">
+                새 공고 둘러보기
+              </Link>
+            </div>
+          </section>
+
           {clubInfo ? (
             <section className="hub-panel projects-panel">
               <div className="hub-panel-header">
                 <h2>진행 중인 프로젝트</h2>
+                <Link className="button button-secondary" to="/dashboard/student/missions">
+                  미션 목록
+                </Link>
               </div>
               
               <div className="hub-project-list">

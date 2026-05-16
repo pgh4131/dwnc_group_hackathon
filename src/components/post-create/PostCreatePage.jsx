@@ -246,7 +246,7 @@ export default function PostCreatePage() {
               <div className="final-check-grid">
                 <span>공고 상태: 모집중</span>
                 <span>저장 방식: Supabase DB</span>
-                <span>상세 연결: /projects/[id] 예정</span>
+                <span>상세 연결: /projects/[id]</span>
               </div>
               {formError ? (
                 <p className="auth-message auth-error" role="alert">
