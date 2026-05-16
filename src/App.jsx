@@ -11,6 +11,7 @@ import ValueSection from './components/ValueSection.jsx';
 import CompanyDashboard from './pages/CompanyDashboard.jsx';
 import ClubDetail from './components/dashboard/ClubDetail.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
+import StudentMissionDetail from './pages/StudentMissionDetail.jsx';
 import PlaceholderPage, { ProjectDetailPlaceholder } from './pages/PlaceholderPage.jsx';
 import { homepageCopy } from './data/homepage.js';
 import { getCurrentSession, signOut, subscribeToAuthChanges } from './services/auth.js';
@@ -151,6 +152,7 @@ export default function App() {
         <Route path="/dashboard/company" element={<CompanyDashboard />} />
         <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
         <Route path="/dashboard/student" element={<StudentDashboard />} />
+        <Route path="/dashboard/student/mission/:id" element={<StudentMissionDetail />} />
       </Routes>
     </BrowserRouter>
   );

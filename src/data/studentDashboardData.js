@@ -1,18 +1,21 @@
 export const studentProfile = {
   clubName: "연세대 마케팅학회 PRISM",
   university: "연세대",
-  companyName: "런치플리",
-  campaignName: "캠퍼스 런치 챌린지",
+  companyName: "Fassto",
+  campaignName: "스타트업 캠퍼스 그로스 캠페인",
   owner: "김민서",
 };
 
 const missionSeeds = [
   {
     id: "m-ugc",
+    companyName: "Fassto",
+    companyIndustry: "물류/배달",
     title: "숏폼 콘텐츠 6건 제작",
     period: "2026.05.01 - 2026.05.18",
     targetKpi: "누적 조회 80,000회 / CTR 4.0%",
     reward: "팀 보상 120만원 + 우수작 보너스",
+    status: "review",
     kpiProgress: 92,
     approvalItems: [
       { id: "a-ugc-1", label: "콘텐츠 원본 업로드", status: "approved" },
@@ -22,10 +25,13 @@ const missionSeeds = [
   },
   {
     id: "m-campus",
+    companyName: "Relate",
+    companyIndustry: "CRM SaaS",
     title: "캠퍼스 부스 바이럴",
     period: "2026.05.14 - 2026.05.27",
     targetKpi: "현장 참여 300명 / 전환율 3.2%",
     reward: "운영비 80만원 + 인증서 발급",
+    status: "in_progress",
     kpiProgress: 67,
     approvalItems: [
       { id: "a-campus-1", label: "현장 사진 제출", status: "approved" },
@@ -34,10 +40,13 @@ const missionSeeds = [
   },
   {
     id: "m-report",
+    companyName: "Flex",
+    companyIndustry: "HR 스타트업",
     title: "최종 성과 리포트",
     period: "2026.05.28 - 2026.06.05",
     targetKpi: "성과 요약 + 개선안 5개",
     reward: "최종 성과 인센티브",
+    status: "in_progress",
     kpiProgress: 28,
     approvalItems: [
       { id: "a-report-1", label: "리포트 초안", status: "not_submitted" },
