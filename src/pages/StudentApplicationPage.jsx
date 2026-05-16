@@ -170,8 +170,8 @@ const formatSubmittedAt = (createdAt) => {
   }).format(new Date(createdAt));
 };
 
-const getInitialValues = () => {
-  const clubProfile = getStudentClubProfile();
+const getInitialValues = (session = null) => {
+  const clubProfile = getStudentClubProfile(session);
 
   return {
     ...initialValues,
@@ -194,14 +194,14 @@ const createProjectPlaceholder = (projectId) =>
 export default function StudentApplicationPage() {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId') || '';
-  const [values, setValues] = useState(getInitialValues);
+  const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [session, setSession] = useState(null);
   const [accountType, setAccountType] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authNotice, setAuthNotice] = useState('');
-  const [hasClubProfile] = useState(() => hasStudentClubProfile());
+  const [hasClubProfile, setHasClubProfile] = useState(false);
   const [projectState, setProjectState] = useState({
     project: createProjectPlaceholder(projectId),
     isLoading: false,
@@ -231,6 +231,8 @@ export default function StudentApplicationPage() {
 
       setSession(result.session);
       setAccountType(result.session?.user?.user_metadata?.account_type || null);
+      setHasClubProfile(hasStudentClubProfile(result.session));
+      setValues(getInitialValues(result.session));
       setIsAuthLoading(false);
 
       const nextAccountType = await getAccountType(result.session);
@@ -244,6 +246,8 @@ export default function StudentApplicationPage() {
     const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
       setAccountType(nextSession?.user?.user_metadata?.account_type || null);
+      setHasClubProfile(hasStudentClubProfile(nextSession));
+      setValues(getInitialValues(nextSession));
       setIsAuthLoading(false);
 
       const nextAccountType = await getAccountType(nextSession);

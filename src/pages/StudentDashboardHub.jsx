@@ -42,8 +42,15 @@ const formatDate = (value) => {
   }).format(new Date(value));
 };
 
+const emptyClubForm = {
+  clubName: '',
+  university: '',
+  owner: '',
+  description: '',
+};
+
 export default function StudentDashboardHub() {
-  const [clubInfo, setClubInfo] = useState(() => getStudentClubProfile());
+  const [clubInfo, setClubInfo] = useState(null);
   const [isEditingClub, setIsEditingClub] = useState(false);
   const [session, setSession] = useState(null);
   const [accountType, setAccountType] = useState(null);
@@ -54,12 +61,7 @@ export default function StudentDashboardHub() {
   const [applicationError, setApplicationError] = useState('');
   const [missionError, setMissionError] = useState('');
 
-  const [clubForm, setClubForm] = useState(() => getStudentClubProfile() || {
-    clubName: '',
-    university: '',
-    owner: '',
-    description: '',
-  });
+  const [clubForm, setClubForm] = useState(emptyClubForm);
 
   useEffect(() => {
     let isMounted = true;
@@ -71,6 +73,9 @@ export default function StudentDashboardHub() {
       if (isMounted) {
         setSession(result.session);
         setAccountType(nextAccountType);
+        const nextClubInfo = getStudentClubProfile(result.session);
+        setClubInfo(nextClubInfo);
+        setClubForm(nextClubInfo || emptyClubForm);
       }
     }
 
@@ -78,6 +83,10 @@ export default function StudentDashboardHub() {
     const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
       setAccountType(await getAccountType(nextSession));
+      const nextClubInfo = getStudentClubProfile(nextSession);
+      setClubInfo(nextClubInfo);
+      setClubForm(nextClubInfo || emptyClubForm);
+      setIsEditingClub(false);
     });
 
     return () => {
@@ -137,14 +146,14 @@ export default function StudentDashboardHub() {
 
   const handleClubSubmit = (e) => {
     e.preventDefault();
-    const savedProfile = saveStudentClubProfile(clubForm);
+    const savedProfile = saveStudentClubProfile(clubForm, session);
     setClubInfo(savedProfile);
     setClubForm(savedProfile);
     setIsEditingClub(false);
   };
 
   const startEditing = () => {
-    setClubForm(clubInfo);
+    setClubForm(clubInfo || emptyClubForm);
     setIsEditingClub(true);
   };
 
