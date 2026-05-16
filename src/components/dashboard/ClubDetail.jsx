@@ -170,12 +170,12 @@ export default function ClubDetail() {
 
         <div style={gridStyle}>
           <div className="dashboard-card">
-            <p className="dashboard-section-label">마케팅 지표 (mission_metrics)</p>
+            <h2 className="dashboard-card-title">마케팅 지표</h2>
             <MetricCharts chartRows={bundle.chartRows} scoreData={bundle.viralVsPeerChart} score={bundle.score} />
           </div>
 
           <div className="dashboard-card">
-            <p className="dashboard-section-label">미션 (missions)</p>
+            <h2 className="dashboard-card-title">미션 현황</h2>
             <div className="dashboard-mission-chip" style={{ background: col.bg, borderColor: "var(--color-border)" }}>
               <span className="dashboard-mission-text" style={{ color: col.text }}>
                 {missionTitle}
@@ -191,9 +191,7 @@ export default function ClubDetail() {
             ) : null}
 
             <div className="mission-timeline-section">
-              <p className="dashboard-section-label dashboard-section-label--tight">
-                프로젝트 일정 흐름 (Timeline)
-              </p>
+              <h3 className="dashboard-card-subtitle">프로젝트 일정</h3>
               <ol className="mission-timeline-v" aria-label="프로젝트 일정 흐름">
                 {projectTimelineSteps.map((step) => (
                   <li key={step.id} className="mission-timeline-item">
@@ -214,9 +212,7 @@ export default function ClubDetail() {
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <p className="dashboard-section-label dashboard-section-label--tight">
-                산출물·진행 (mission_deliverables / mission_progress)
-              </p>
+              <h3 className="dashboard-card-subtitle">산출물·진행 현황</h3>
               {assignedMissions.length === 0 ? (
                 <p className="dashboard-lead" style={{ marginTop: 12 }}>아직 등록된 미션이 없습니다.</p>
               ) : (

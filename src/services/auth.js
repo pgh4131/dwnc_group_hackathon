@@ -78,8 +78,15 @@ export async function signUpWithEmail({ email, password, accountType }) {
 }
 
 export async function signOut() {
+  if (!isSupabaseConfigured) {
+    return;
+  }
+
   const supabase = createClient();
-  const { error } = await supabase.auth.signOut();
+  const timeout = new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error('Supabase sign out timed out.')), 3000);
+  });
+  const { error } = await Promise.race([supabase.auth.signOut({ scope: 'local' }), timeout]);
 
   if (error) {
     throw new Error(error.message);

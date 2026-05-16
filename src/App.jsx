@@ -41,6 +41,7 @@ function MainPage() {
   const [accountType, setAccountType] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authNotice, setAuthNotice] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -92,9 +93,16 @@ function MainPage() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut();
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
     setSession(null);
     setAccountType(null);
+    setIsLoggingOut(false);
+
+    signOut().catch((error) => {
+      console.error('Failed to sign out:', error);
+    });
   };
 
   const openAuthModal = (notice = '') => {
@@ -132,6 +140,7 @@ function MainPage() {
         isAuthenticated={Boolean(session)}
         userEmail={session?.user?.email}
         accountType={accountType}
+        isLoggingOut={isLoggingOut}
         onLoginClick={() => openAuthModal()}
         onLogoutClick={handleLogout}
         onStartupClick={handleStartupClick}

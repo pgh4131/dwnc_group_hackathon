@@ -91,9 +91,7 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
   return (
     <div>
       <div className="dashboard-card">
-        <p className="dashboard-section-label">
-          미션 전달 (assign_mission) · 공고 #{missionId}
-        </p>
+        <h2 className="dashboard-card-title">미션 전달</h2>
         <p className="dashboard-lead">동아리에게 전달할 미션을 선택하거나 직접 입력하여 전달하세요.</p>
 
         {solutions.map((sol) => {
@@ -228,7 +226,7 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
       </div>
 
       <div className="dashboard-card">
-        <p className="dashboard-section-label">공지·알림 (notifications)</p>
+        <h2 className="dashboard-card-title">공지·알림</h2>
         <p className="dashboard-lead">매칭 단위로 동아리에 알림을 보냅니다.</p>
 
         <p className="dashboard-input-label">제목</p>
@@ -241,7 +239,7 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
         />
 
         <p className="dashboard-input-label" style={{ marginTop: 10 }}>
-          내용 (message)
+          내용
         </p>
         <textarea
           value={noticeText}

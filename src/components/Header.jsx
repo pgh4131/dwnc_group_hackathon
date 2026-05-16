@@ -5,6 +5,7 @@ export default function Header({
   isAuthenticated = false,
   userEmail = '',
   accountType = null,
+  isLoggingOut = false,
   onLoginClick = () => {},
   onLogoutClick = () => {},
   onStartupClick,
@@ -48,11 +49,12 @@ export default function Header({
             return isAuthenticated ? (
               <button
                 key="logout"
-                className={`button button-${action.variant}`}
+                className={`button button-${action.variant} header-logout-button`}
                 type="button"
+                disabled={isLoggingOut}
                 onClick={onLogoutClick}
               >
-                {copy.auth.logoutLabel}
+                {isLoggingOut ? '로그아웃 중' : copy.auth.logoutLabel}
               </button>
             ) : (
               <button
