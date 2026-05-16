@@ -65,7 +65,7 @@ export default function StudentMissionDetail() {
       </div>
 
       <main className="section-wrap dashboard-main student-dashboard-main">
-        <button type="button" className="dashboard-back" onClick={() => navigate("/dashboard/student")}>
+        <button type="button" className="dashboard-back" onClick={() => navigate("/dashboard/student/missions")}>
           ← 미션 목록으로
         </button>
 
