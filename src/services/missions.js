@@ -65,13 +65,21 @@ const mapMissionRows = (missionRows, matches) => {
     const progress = m.mission_progress?.[0];
     const deliverables = m.mission_deliverables || [];
 
-    const approvalItems = deliverables.map(d => ({
+    const approvalItems = deliverables.length > 0 ? deliverables.map(d => ({
       id: d.deliverable_id,
       label: d.title,
       status: d.approval_status === 'approved' ? 'approved'
         : d.submission_date ? 'pending'
         : 'not_submitted',
-    }));
+      submissionContent: d.description || '',
+    })) : [
+      {
+        id: 'virtual-deliverable',
+        label: '미션 수행 결과',
+        status: 'not_submitted',
+        submissionContent: ''
+      }
+    ];
 
     const kpiProgress = progress?.progress_percent ?? 0;
     const approvedCount = approvalItems.filter(a => a.status === 'approved').length;
@@ -90,6 +98,7 @@ const mapMissionRows = (missionRows, matches) => {
       title: m.mission_name,
       period: `${m.start_date || ''} - ${m.end_date || ''}`,
       targetKpi: m.objective_kpi || '',
+      targetMetric: m.target_metric || null,
       reward: '',
       status: m.status === 'completed' ? 'completed'
         : progress?.status === 'completed' ? 'review'
@@ -193,7 +202,30 @@ export async function fetchStudentMissions(clubId) {
 
   if (error) return { missions: [], error: error.message };
 
-  return { missions: mapMissionRows(missionRows, matches), error: null };
+  const mappedMissions = mapMissionRows(missionRows, matches || []);
+  const matchesWithMissions = new Set(missionRows?.map(m => m.match_id));
+  const matchesWithoutMissions = (matches || []).filter(m => !matchesWithMissions.has(m.match_id));
+
+  const placeholderMissions = matchesWithoutMissions.map(m => ({
+    id: `placeholder-${m.match_id}`,
+    mission_id: null,
+    match_id: m.match_id,
+    club_id: m.club_id,
+    companyName: m?.companies?.name || '기업',
+    companyIndustry: m?.companies?.industry || '',
+    title: '프로젝트 준비 중',
+    period: '일정 미정',
+    targetKpi: '',
+    targetMetric: null,
+    reward: '',
+    status: 'in_progress',
+    kpiProgress: 0,
+    approvalItems: [],
+    approvalProgress: 0,
+    overallProgress: 0,
+  }));
+
+  return { missions: [...mappedMissions, ...placeholderMissions], error: null };
 }
 
 export async function fetchStudentMissionsForCurrentUser(options = {}) {
@@ -218,15 +250,12 @@ export async function fetchStudentMissionsForCurrentUser(options = {}) {
     .filter((application) => !application.match_id)
     .map(mapAcceptedApplicationToMission);
 
-  if (matchIds.length === 0) return { missions: fallbackMissions, error: null };
-
   const { data: matches, error: matchError } = await supabase
     .from('club_company_match')
     .select('match_id, club_id, companies(name, industry)')
-    .in('match_id', matchIds);
+    .in('match_id', matchIds.length > 0 ? matchIds : [-1]);
 
   if (matchError) return { missions: [], error: matchError.message };
-  if (!matches?.length) return { missions: fallbackMissions, error: null };
 
   const { data: missionRows, error } = await supabase
     .from('missions')
@@ -235,12 +264,46 @@ export async function fetchStudentMissionsForCurrentUser(options = {}) {
       mission_progress(progress_percent, status),
       mission_deliverables(*)
     `)
-    .in('match_id', matchIds)
+    .in('match_id', matchIds.length > 0 ? matchIds : [-1])
     .order('created_at', { ascending: false });
 
   if (error) return { missions: [], error: error.message };
 
-  return { missions: [...mapMissionRows(missionRows, matches || []), ...fallbackMissions], error: null };
+  const projectTitles = new Map();
+  acceptedApplications.forEach(app => {
+    if (app.match_id && app.project?.title) {
+      projectTitles.set(app.match_id, app.project.title);
+    }
+  });
+
+  const mappedMissions = mapMissionRows(missionRows, matches || []).map(m => ({
+    ...m,
+    projectTitle: projectTitles.get(m.match_id) || null,
+  }));
+  const matchesWithMissions = new Set(missionRows?.map(m => m.match_id));
+  const matchesWithoutMissions = (matches || []).filter(m => !matchesWithMissions.has(m.match_id));
+
+  const placeholderMissions = matchesWithoutMissions.map(m => ({
+    id: `placeholder-${m.match_id}`,
+    mission_id: null,
+    match_id: m.match_id,
+    club_id: m.club_id,
+    companyName: m?.companies?.name || '기업',
+    companyIndustry: m?.companies?.industry || '',
+    title: '프로젝트 준비 중',
+    projectTitle: projectTitles.get(m.match_id) || null,
+    period: '일정 미정',
+    targetKpi: '',
+    targetMetric: null,
+    reward: '',
+    status: 'in_progress',
+    kpiProgress: 0,
+    approvalItems: [],
+    approvalProgress: 0,
+    overallProgress: 0,
+  }));
+
+  return { missions: [...mappedMissions, ...placeholderMissions, ...fallbackMissions], error: null };
 }
 
 export async function assignMissionToMatch({ matchId, clubId, title, description, deadline, delayBuffer, targetMetric }) {
@@ -276,6 +339,16 @@ export async function assignMissionToMatch({ matchId, clubId, title, description
     });
 
   if (progressError) return { mission: null, error: progressError.message };
+
+  const { error: deliverableError } = await supabase
+    .from('mission_deliverables')
+    .insert({
+      mission_id: mission.mission_id,
+      title: '미션 수행 결과',
+      approval_status: 'pending',
+    });
+  
+  if (deliverableError) return { mission: null, error: deliverableError.message };
 
   return { mission, error: null };
 }
@@ -355,4 +428,111 @@ export async function fetchStudentFeedbackForCurrentUser(options = {}) {
     })),
     error: null,
   };
+}
+
+export async function submitMissionDeliverable({ deliverableId, missionId, clubId, content, targetMetric }) {
+  if (!isSupabaseConfigured) return { error: 'Supabase 미설정' };
+  const supabase = createClient();
+  const today = new Date().toISOString();
+
+  let status = 'pending';
+  let isTargetMet = false;
+
+  if (targetMetric != null && targetMetric !== '') {
+    const numericContent = Number(content);
+    if (!isNaN(numericContent) && numericContent >= Number(targetMetric)) {
+      status = 'approved';
+      isTargetMet = true;
+    }
+  }
+
+  // First check if a deliverable already exists for this mission
+  const { data: existingDeliverables, error: fetchError } = await supabase
+    .from('mission_deliverables')
+    .select('deliverable_id')
+    .eq('mission_id', missionId)
+    .order('deliverable_id', { ascending: true });
+
+  if (fetchError) return { error: fetchError.message };
+
+  let updateError;
+  let returnedId = deliverableId;
+
+  if (existingDeliverables && existingDeliverables.length > 0) {
+    // Update the first one
+    const mainDeliverableId = existingDeliverables[0].deliverable_id;
+    returnedId = mainDeliverableId;
+    const { error } = await supabase
+      .from('mission_deliverables')
+      .update({
+        description: String(content),
+        submission_date: today,
+        approval_status: status,
+        submitted_by_club_id: clubId,
+      })
+      .eq('deliverable_id', mainDeliverableId);
+    updateError = error;
+
+    // Delete any duplicates if they exist
+    if (existingDeliverables.length > 1) {
+      const duplicateIds = existingDeliverables.slice(1).map(d => d.deliverable_id);
+      await supabase.from('mission_deliverables').delete().in('deliverable_id', duplicateIds);
+    }
+  } else {
+    // Insert new one
+    const { data: inserted, error } = await supabase
+      .from('mission_deliverables')
+      .insert({
+        mission_id: missionId,
+        title: '미션 수행 결과',
+        description: String(content),
+        submission_date: today,
+        approval_status: status,
+        submitted_by_club_id: clubId,
+      })
+      .select()
+      .single();
+    updateError = error;
+    if (inserted) {
+      returnedId = inserted.deliverable_id;
+    }
+  }
+
+  if (updateError) return { error: updateError.message };
+
+  if (isTargetMet) {
+    // Also update mission_progress to 100%
+    await supabase
+      .from('mission_progress')
+      .update({ progress_percent: 100, status: 'completed' })
+      .eq('mission_id', missionId)
+      .eq('club_id', clubId);
+  }
+
+  return { error: null, autoApproved: isTargetMet };
+}
+
+export async function approveMissionDeliverable(deliverableId, companyId, missionId, clubId) {
+  if (!isSupabaseConfigured) return { error: 'Supabase 미설정' };
+  const supabase = createClient();
+  const today = new Date().toISOString();
+
+  const { error } = await supabase
+    .from('mission_deliverables')
+    .update({
+      approval_status: 'approved',
+      approved_by_company_id: companyId,
+      approval_date: today,
+    })
+    .eq('deliverable_id', deliverableId);
+
+  if (error) return { error: error.message };
+
+  await supabase
+    .from('mission_progress')
+    .update({ progress_percent: 100, status: 'completed' })
+    .eq('mission_id', missionId)
+    .eq('club_id', clubId);
+
+  return { error: null };
 }

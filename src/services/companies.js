@@ -111,26 +111,38 @@ export async function fetchClubDashboardBundle(clubId, companyId) {
   if (!match) return null;
 
   const { data: club } = await supabase.from('clubs').select('*').eq('club_id', clubId).single();
-  const { data: mission } = await supabase.from('missions').select('*').eq('match_id', match.match_id).maybeSingle();
-  if (!club || !mission) return null;
+  const { data: missions } = await supabase.from('missions').select('*').eq('match_id', match.match_id).order('created_at', { ascending: false });
+  const mission = missions && missions.length > 0 ? missions[0] : null;
+  if (!club) return null;
+
+  const missionIds = missions && missions.length > 0 ? missions.map(m => m.mission_id) : [-1];
+  const missionId = mission?.mission_id || -1;
 
   const { data: metrics } = await supabase
     .from('mission_metrics')
     .select('*')
-    .eq('mission_id', mission.mission_id)
+    .eq('mission_id', missionId)
     .order('metric_date');
 
   const { data: progress } = await supabase
     .from('mission_progress')
     .select('*')
-    .eq('mission_id', mission.mission_id)
+    .eq('mission_id', missionId)
     .eq('club_id', clubId)
     .maybeSingle();
 
-  const { data: deliverables } = await supabase
+  const { data: rawDeliverables } = await supabase
     .from('mission_deliverables')
     .select('*')
-    .eq('mission_id', mission.mission_id);
+    .in('mission_id', missionIds)
+    .order('deliverable_id', { ascending: false });
+
+  const deliverableByMission = {};
+  for (const d of (rawDeliverables || [])) {
+    if (!deliverableByMission[d.mission_id]) {
+      deliverableByMission[d.mission_id] = d;
+    }
+  }
 
   const { data: notifs } = await supabase
     .from('notifications')
@@ -141,12 +153,12 @@ export async function fetchClubDashboardBundle(clubId, companyId) {
   const { data: solutions } = await supabase
     .from('marketing_solutions')
     .select('*')
-    .eq('mission_id', mission.mission_id);
+    .eq('mission_id', missionId);
 
   const { data: timeline } = await supabase
     .from('mission_timeline_events')
     .select('*')
-    .eq('mission_id', mission.mission_id)
+    .eq('mission_id', missionId)
     .order('event_date');
 
   const fmt = (iso) => {
@@ -170,12 +182,19 @@ export async function fetchClubDashboardBundle(clubId, companyId) {
 
   const scoreVal = Math.round(progress?.progress_percent ?? 0);
 
-  const taskRows = (deliverables || []).map((d) => ({
-    id: d.deliverable_id,
-    name: d.title,
-    done: d.approval_status === 'approved',
-    pct: d.approval_status === 'approved' ? 100 : d.submission_date ? 65 : 0,
-  }));
+  const taskRows = (missions || []).map((m) => {
+    const d = deliverableByMission[m.mission_id] || {};
+    return {
+      id: m.mission_id,
+      deliverableId: d.deliverable_id,
+      name: m.mission_name,
+      done: d.approval_status === 'approved',
+      pct: d.approval_status === 'approved' ? 100 : d.submission_date ? 65 : 0,
+      status: d.approval_status || 'not_submitted',
+      submissionContent: d.description || '',
+      missionId: m.mission_id,
+    };
+  });
 
   const noticeRows = (notifs || []).map((n) => ({
     id: n.notification_id,
@@ -199,7 +218,7 @@ export async function fetchClubDashboardBundle(clubId, companyId) {
   return {
     club: { id: club.club_id, club_id: club.club_id, name: club.name, initials, university: club.university },
     match,
-    mission,
+    mission: mission || {},
     metrics: metrics || [],
     weeks: (metrics || []).map(m => fmt(m.metric_date)),
     chartRows,
@@ -214,9 +233,9 @@ export async function fetchClubDashboardBundle(clubId, companyId) {
     missions: taskRows,
     timeline: timeline || [],
     statusKey,
-    missionTitle: mission.mission_name,
-    missionDescription: mission.mission_description,
-    objectiveKpi: mission.objective_kpi,
+    missionTitle: mission?.mission_name || '미션 대기 중',
+    missionDescription: mission?.mission_description || '아직 등록된 미션이 없습니다. 새 미션을 추가해주세요.',
+    objectiveKpi: mission?.objective_kpi || '',
   };
 }
 

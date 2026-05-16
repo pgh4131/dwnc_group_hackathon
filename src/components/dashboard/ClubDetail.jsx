@@ -4,7 +4,7 @@ import Header from "../Header.jsx";
 import { homepageCopy } from "../../data/homepage.js";
 import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from "../../services/auth.js";
 import { fetchCompanyByOwner, fetchClubDashboardBundle } from "../../services/companies.js";
-import { assignMissionToMatch } from "../../services/missions.js";
+import { assignMissionToMatch, approveMissionDeliverable } from "../../services/missions.js";
 import MetricCharts from "./MetricCharts";
 import SolutionPanel from "./SolutionPanel";
 
@@ -232,18 +232,44 @@ export default function ClubDetail() {
                 assignedMissions.map((m) => {
                   const delayed = !m.done && m.pct > 0 && m.pct < 45;
                   return (
-                    <div key={m.id} className={`dashboard-mission-row ${delayed ? "dashboard-mission-row--delayed" : ""}`}>
-                    <div className={`dashboard-checkbox ${m.done ? "dashboard-checkbox--done" : ""}`} aria-hidden>
-                      {m.done ? "✓" : ""}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="dashboard-mission-name">{m.name}</div>
-                      <div className="dashboard-progress-track">
-                        <div className="dashboard-progress-fill" style={{ width: `${m.pct}%`, background: col.line }} />
+                    <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                      <div className={`dashboard-mission-row ${delayed ? "dashboard-mission-row--delayed" : ""}`}>
+                        <div className={`dashboard-checkbox ${m.done ? "dashboard-checkbox--done" : ""}`} aria-hidden>
+                          {m.done ? "✓" : ""}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div className="dashboard-mission-name">{m.name}</div>
+                          <div className="dashboard-progress-track">
+                            <div className="dashboard-progress-fill" style={{ width: `${m.pct}%`, background: col.line }} />
+                          </div>
+                        </div>
+                        <span className="dashboard-mission-pct">{m.pct}%</span>
                       </div>
+                      
+                      {m.submissionContent && (
+                        <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '14px', color: '#334155', border: '1px solid #e2e8f0' }}>
+                          <div style={{ fontWeight: 600, marginBottom: '4px' }}>제출 결과:</div>
+                          <div>{m.submissionContent}</div>
+                        </div>
+                      )}
+                      
+                      {m.status === 'pending' && (
+                        <button
+                          className="button button-primary"
+                          style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '13px' }}
+                          onClick={async () => {
+                            const { error } = await approveMissionDeliverable(m.deliverableId, bundle.match.company_id, m.missionId, club.club_id);
+                            if (error) {
+                              alert(`승인 실패: ${error}`);
+                            } else {
+                              setAssignedMissions(prev => prev.map(item => item.id === m.id ? { ...item, done: true, pct: 100, status: 'approved' } : item));
+                            }
+                          }}
+                        >
+                          수행 결과 승인하기
+                        </button>
+                      )}
                     </div>
-                    <span className="dashboard-mission-pct">{m.pct}%</span>
-                  </div>
                   );
                 })
               )}
