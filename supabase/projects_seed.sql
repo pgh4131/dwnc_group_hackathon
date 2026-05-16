@@ -57,24 +57,6 @@ values
     '5주',
     '활동비 100만원',
     '모집중'
-  ),
-  (
-    'local-pop-up',
-    'GroundKit',
-    '지역 기반 팝업 행사 홍보 서포터즈',
-    array['오프라인', '행사', '홍보'],
-    '2주',
-    '성과 보너스 별도',
-    '신규'
-  ),
-  (
-    'b2b-beta-test',
-    'Teamflow',
-    '대학생 팀 협업 SaaS 베타 테스트',
-    array['SaaS', '협업툴', '테스트'],
-    '4주',
-    '활동비 70만원',
-    '모집중'
   )
 on conflict (id) do update set
   startup_name = excluded.startup_name,
