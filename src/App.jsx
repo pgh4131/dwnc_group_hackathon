@@ -6,6 +6,8 @@ import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import HeroSection from './components/HeroSection.jsx';
 import HowItWorksSection from './components/HowItWorksSection.jsx';
+import PostCreateCompletePage from './components/post-create/PostCreateCompletePage.jsx';
+import PostCreatePage from './components/post-create/PostCreatePage.jsx';
 import UserTypeCTASection from './components/UserTypeCTASection.jsx';
 import ValueSection from './components/ValueSection.jsx';
 import CompanyDashboard from './pages/CompanyDashboard.jsx';
@@ -171,6 +173,8 @@ export default function App() {
         <Route path="/dashboard/company" element={<CompanyDashboard />} />
         <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
         <Route path="/dashboard/student" element={<StudentDashboard />} />
+        <Route path="/company/posts/new" element={<PostCreatePage />} />
+        <Route path="/company/posts/complete" element={<PostCreateCompletePage />} />
       </Routes>
     </BrowserRouter>
   );
