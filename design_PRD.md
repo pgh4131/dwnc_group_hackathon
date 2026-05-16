@@ -318,7 +318,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ## 14. 구현상 주의사항
 
 - 현재 앱은 Vite + React다.
-- `app/page.tsx`, `middleware.ts`, `utils/supabase/*`는 Next 전환용 템플릿이며 현재 Vite 런타임에는 직접 관여하지 않는다.
+- Vercel 배포는 `vercel.json`에서 Vite 프리셋, `npm run build`, `dist` 출력 디렉터리를 명시한다.
 - Supabase `public.projects` 테이블이 없으면 공고 카드가 표시되지 않는다.
 - 실제 공고 표시를 위해 Supabase SQL Editor에서 `supabase/projects_seed.sql`을 실행해야 한다.
 - 회원 유형 저장을 위해 Supabase SQL Editor에서 `supabase/auth_profiles.sql`을 실행해야 한다.
