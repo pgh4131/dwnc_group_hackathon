@@ -90,9 +90,13 @@ function MainPage() {
     setAccountType(null);
   };
 
-  const handleStartupClick = () => {
+  const handleStartupClick = (e) => {
+    if (e) e.preventDefault();
     if (accountType !== 'startup') {
-      window.alert(homepageCopy.auth.startupOnlyMessage);
+      window.alert('스타트업용 계정으로 로그인해 주세요.');
+      if (!session) {
+        setIsAuthModalOpen(true);
+      }
       return;
     }
 
@@ -111,7 +115,7 @@ function MainPage() {
         onStartupClick={handleStartupClick}
       />
       <main>
-        <HeroSection copy={homepageCopy.hero} />
+        <HeroSection copy={homepageCopy.hero} onStartupClick={handleStartupClick} />
         <FeaturedProjectsSection
           projects={projectState.projects}
           copy={homepageCopy.projects}
@@ -120,7 +124,7 @@ function MainPage() {
         />
         <ValueSection items={homepageCopy.values} sectionMeta={homepageCopy.valueSection} />
         <HowItWorksSection steps={homepageCopy.steps} sectionMeta={homepageCopy.howItWorksSection} />
-        <UserTypeCTASection cards={homepageCopy.userCtas} />
+        <UserTypeCTASection cards={homepageCopy.userCtas} onStartupClick={handleStartupClick} />
       </main>
       <Footer copy={homepageCopy.footer} serviceName={homepageCopy.serviceName} />
       <AuthModal
@@ -147,15 +151,6 @@ export default function App() {
           }
         />
         <Route path="/projects/:id" element={<ProjectDetailPlaceholder />} />
-        <Route
-          path="/startup"
-          element={
-            <PlaceholderPage
-              title="스타트업용"
-              description="스타트업 전용 화면은 추후 구현 예정입니다."
-            />
-          }
-        />
         <Route
           path="/login"
           element={
