@@ -4,26 +4,62 @@ import { useState } from "react";
  * marketing_solutions: 기업 선택·전달 (목数据)
  * notifications: 공지 발송 목록 (notifications 테이블 형식에 맞춘 UI 상태)
  */
-export default function SolutionPanel({ missionId, solutions = [], initialNotices = [] }) {
+export default function SolutionPanel({ missionId, solutions = [], initialNotices = [], onAssign }) {
   const [selected, setSelected] = useState([]);
 
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeText, setNoticeText] = useState("");
   const [notices, setNotices] = useState(initialNotices);
   const [noticeSent, setNoticeSent] = useState(false);
-
-  const [newMissionText, setNewMissionText] = useState("");
+  const [missionForm, setMissionForm] = useState({
+    title: "",
+    description: "",
+    deadline: "",
+    delayBuffer: "",
+    targetMetric: ""
+  });
   const [missionSent, setMissionSent] = useState(false);
+  const [showMetricInput, setShowMetricInput] = useState(false);
 
   function toggleSol(id) {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    const isSelected = selected.includes(id);
+    if (isSelected) {
+      setSelected([]);
+    } else {
+      setSelected([id]);
+      const sol = solutions.find((s) => s.id === id);
+      if (sol) {
+        setMissionForm((prev) => ({
+          ...prev,
+          title: sol.title || "",
+          description: sol.description || "",
+        }));
+      }
+    }
     setMissionSent(false);
   }
 
   function handleSendMission() {
-    if (selected.length === 0 && !newMissionText.trim()) return;
+    const isFormEmpty = Object.values(missionForm).every(val => !val.trim());
+    if (selected.length === 0 && isFormEmpty) return;
     setMissionSent(true);
-    setTimeout(() => setMissionSent(false), 2500);
+    
+    if (onAssign) {
+      onAssign(missionForm);
+    }
+    
+    setTimeout(() => {
+      setMissionSent(false);
+      setSelected([]);
+      setShowMetricInput(false);
+      setMissionForm({
+        title: "",
+        description: "",
+        deadline: "",
+        delayBuffer: "",
+        targetMetric: ""
+      });
+    }, 2500);
   }
 
   function handleSendNotice() {
@@ -102,16 +138,83 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
             </button>
           </div>
           
-          <textarea
-            value={newMissionText}
-            onChange={(e) => {
-              setNewMissionText(e.target.value);
-              setMissionSent(false);
-            }}
-            placeholder="동아리가 수행할 구체적인 미션 내용을 직접 입력하거나 AI 추천을 받아보세요..."
-            rows={4}
-            className="dashboard-input dashboard-input--mb"
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <p className="dashboard-input-label">미션 제목</p>
+              <input
+                type="text"
+                value={missionForm.title}
+                onChange={(e) => { setMissionForm({...missionForm, title: e.target.value}); setMissionSent(false); }}
+                placeholder="예: 여름 시즌 SNS 숏폼 제작"
+                className="dashboard-input dashboard-input--single"
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <p className="dashboard-input-label">미션 상세 설명</p>
+              <textarea
+                value={missionForm.description}
+                onChange={(e) => { setMissionForm({...missionForm, description: e.target.value}); setMissionSent(false); }}
+                placeholder="동아리가 수행할 구체적인 미션 내용을 직접 입력하거나 AI 추천을 받아보세요..."
+                rows={3}
+                className="dashboard-input dashboard-input--mb"
+                style={{ marginBottom: 0 }}
+              />
+            </div>
+            <div>
+              <p className="dashboard-input-label">제출 기한</p>
+              <input
+                type="date"
+                value={missionForm.deadline}
+                onChange={(e) => { setMissionForm({...missionForm, deadline: e.target.value}); setMissionSent(false); }}
+                className="dashboard-input dashboard-input--single"
+              />
+            </div>
+            <div>
+              <p className="dashboard-input-label">지연 버퍼 (선택)</p>
+              <input
+                type="text"
+                value={missionForm.delayBuffer}
+                onChange={(e) => { setMissionForm({...missionForm, delayBuffer: e.target.value}); setMissionSent(false); }}
+                placeholder="예: 기한 후 최대 3일 이내"
+                className="dashboard-input dashboard-input--single"
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div 
+                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: showMetricInput ? '8px' : '0' }}
+                onClick={() => setShowMetricInput(!showMetricInput)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowMetricInput(!showMetricInput);
+                  }
+                }}
+              >
+                <div
+                  className={`dashboard-solution-radio ${showMetricInput ? "dashboard-solution-radio--on" : ""}`}
+                  aria-hidden
+                  style={{ marginRight: '8px' }}
+                >
+                  {showMetricInput ? <span className="dashboard-solution-check">✓</span> : null}
+                </div>
+                <p className="dashboard-input-label" style={{ margin: 0, cursor: 'pointer' }}>목표 수치 / KPI 입력 (선택)</p>
+              </div>
+              
+              {showMetricInput && (
+                <div>
+                  <input
+                    type="number"
+                    value={missionForm.targetMetric}
+                    onChange={(e) => { setMissionForm({...missionForm, targetMetric: e.target.value}); setMissionSent(false); }}
+                    placeholder="숫자만 입력해 주세요 (예: 10000)"
+                    className="dashboard-input dashboard-input--single"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <button

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../Footer.jsx';
 import Header from '../Header.jsx';
@@ -10,6 +10,7 @@ import RewardAndConditionSection from './RewardAndConditionSection.jsx';
 import SubmitButton from './SubmitButton.jsx';
 import { homepageCopy } from '../../data/homepage.js';
 import { createCampaignPost } from '../../services/campaignPostStorage.js';
+import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from '../../services/auth.js';
 
 const initialValues = {
   companyName: '',
@@ -75,6 +76,41 @@ export default function PostCreatePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSession() {
+      const result = await getCurrentSession();
+      if (isMounted) {
+        setSession(result.session);
+        setAccountType(await getAccountType(result.session));
+      }
+    }
+    loadSession();
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
+      setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
+    });
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    setSession(null);
+    setAccountType(null);
+    navigate('/');
+  };
+
+  const companyHeaderCopy = {
+    ...homepageCopy,
+    headerActions: homepageCopy.headerActions.filter(action => action.type !== 'startup')
+  };
+
   const completedRequiredCount = useMemo(() => {
     const textFieldCount = requiredFields.filter(([field]) => values[field].trim()).length;
     return textFieldCount + (values.activityTypes.length > 0 ? 1 : 0);
@@ -129,7 +165,14 @@ export default function PostCreatePage() {
 
   return (
     <div className="app-shell">
-      <Header copy={homepageCopy} isAuthenticated={false} />
+      <Header 
+        copy={companyHeaderCopy} 
+        isAuthenticated={Boolean(session)} 
+        userEmail={session?.user?.email}
+        accountType={accountType}
+        onLogoutClick={handleLogout}
+        hideDashboardButton={true}
+      />
       <main className="post-create-page">
         <section className="post-create-hero section-wrap">
           <div>

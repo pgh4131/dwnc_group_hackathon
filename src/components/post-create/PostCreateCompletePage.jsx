@@ -1,12 +1,50 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import Footer from '../Footer.jsx';
 import Header from '../Header.jsx';
 import { homepageCopy } from '../../data/homepage.js';
 import { getCampaignPostById } from '../../services/campaignPostStorage.js';
+import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from '../../services/auth.js';
 
 export default function PostCreateCompletePage() {
   const postId = new URLSearchParams(window.location.search).get('id');
   const createdPost = postId ? getCampaignPostById(postId) : null;
+  const navigate = useNavigate();
+
+  const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSession() {
+      const result = await getCurrentSession();
+      if (isMounted) {
+        setSession(result.session);
+        setAccountType(await getAccountType(result.session));
+      }
+    }
+    loadSession();
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
+      setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
+    });
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    setSession(null);
+    setAccountType(null);
+    navigate('/');
+  };
+
+  const companyHeaderCopy = {
+    ...homepageCopy,
+    headerActions: homepageCopy.headerActions.filter(action => action.type !== 'startup')
+  };
 
   return (
     <div className="app-shell">
