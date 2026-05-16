@@ -29,9 +29,7 @@ export default function Header({
             </Link>
           ))}
         </nav>
-      ) : (
-        <div className="header-nav-spacer" aria-hidden="true" />
-      )}
+      ) : null}
 
       <div className="header-actions">
         {isAuthenticated && userEmail ? (

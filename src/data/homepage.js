@@ -1,7 +1,7 @@
 export const homepageCopy = {
   serviceName: 'Campus Bridge',
   navigation: [],
-  authenticatedNavigation: [{ label: '동아리/학회용', href: '/clubs' }],
+  authenticatedNavigation: [],
   headerActions: [
     { label: '로그인', variant: 'secondary', type: 'auth' },
     { label: '스타트업용', href: '/startup', variant: 'primary', type: 'startup' },
