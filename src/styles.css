@@ -459,6 +459,7 @@ button {
   font-size: clamp(38px, 6vw, 66px);
   line-height: 1.08;
   letter-spacing: 0;
+  word-break: keep-all;
 }
 
 .hero-description {
@@ -3587,6 +3588,119 @@ button {
 .student-full-btn:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.certificate-payment-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+}
+
+.certificate-payment-modal {
+  position: relative;
+  width: min(100%, 400px);
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 32px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+}
+
+.certificate-payment-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.certificate-payment-modal h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.certificate-payment-price {
+  display: block;
+  margin-bottom: 4px;
+  color: #2563eb;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.certificate-payment-desc {
+  margin: 0 0 20px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.certificate-payment-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.certificate-payment-field span {
+  display: block;
+  margin-bottom: 6px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.certificate-payment-field input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #334155;
+  font-size: 15px;
+}
+
+.certificate-payment-field input:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.certificate-payment-field input.is-error {
+  border-color: #ef4444;
+}
+
+.certificate-payment-field em {
+  display: block;
+  margin-top: 5px;
+  color: #ef4444;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.certificate-payment-submit {
+  width: 100%;
+  margin-top: 4px;
+  border: none;
+  border-radius: 12px;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.certificate-payment-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .student-certificate-preview-wrap {

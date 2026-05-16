@@ -1,4 +1,5 @@
 import { createClient, isSupabaseConfigured } from '../utils/supabase/client.js';
+import { getMyStudentApplications } from './studentApplicationStorage.js';
 
 export async function createMission(missionData) {
   if (!isSupabaseConfigured) return { mission: null, error: 'Supabase 미설정' };
@@ -101,6 +102,37 @@ const mapMissionRows = (missionRows, matches) => {
   });
 };
 
+const mapAcceptedApplicationToMission = (application) => {
+  const post = application.campaign_post || application.campaign_posts || null;
+  const project = application.project || {};
+  const projectInfo = post?.project_info || {};
+  const companyInfo = post?.company_info || {};
+  const rewardInfo = post?.reward_and_condition || {};
+
+  return {
+    id: `app-${application.id}`,
+    applicationId: application.id,
+    postId: application.post_id,
+    match_id: `application-${application.id}`,
+    companyName:
+      project.startupName ||
+      companyInfo.serviceName ||
+      companyInfo.companyName ||
+      '스타트업',
+    companyIndustry: companyInfo.category || '',
+    title: project.title || projectInfo.title || '캠퍼스 마케팅 프로젝트',
+    period: project.period || projectInfo.period || '기간 협의',
+    targetKpi: projectInfo.target || '캠페인 성과 제출',
+    reward: project.reward || rewardInfo.rewardSummary || '보상 협의',
+    status: 'in_progress',
+    kpiProgress: 0,
+    approvalItems: [],
+    approvalProgress: 0,
+    overallProgress: 0,
+    acceptedAt: application.updated_at || application.created_at,
+  };
+};
+
 export const buildStudentProjectSummaries = (missions = []) => {
   const groups = new Map();
 
@@ -121,18 +153,16 @@ export const buildStudentProjectSummaries = (missions = []) => {
         ? 'review'
         : 'in_progress';
 
-    const isPlaceholder = projectMissions.length === 1 && projectMissions[0].mission_id === null;
-
     return {
       id: `project-${key}`,
       match_id: primary.match_id,
       detailMissionId: primary.id,
       companyName: primary.companyName,
       companyIndustry: primary.companyIndustry,
-      title: primary.projectTitle || `${primary.companyName} 캠퍼스 마케팅 프로젝트`,
+      title: `${primary.companyName} 캠퍼스 마케팅 프로젝트`,
       latestMissionTitle: primary.title,
       period: primary.period,
-      missionCount: isPlaceholder ? 0 : projectMissions.length,
+      missionCount: projectMissions.length,
       status,
       overallProgress: avgProgress,
     };
@@ -163,29 +193,7 @@ export async function fetchStudentMissions(clubId) {
 
   if (error) return { missions: [], error: error.message };
 
-  const mappedMissions = mapMissionRows(missionRows, matches || []);
-  const matchesWithMissions = new Set(missionRows?.map(m => m.match_id));
-  const matchesWithoutMissions = (matches || []).filter(m => !matchesWithMissions.has(m.match_id));
-
-  const placeholderMissions = matchesWithoutMissions.map(m => ({
-    id: `placeholder-${m.match_id}`,
-    mission_id: null,
-    match_id: m.match_id,
-    club_id: m.club_id,
-    companyName: m?.companies?.name || '기업',
-    companyIndustry: m?.companies?.industry || '',
-    title: '프로젝트 준비 중',
-    period: '일정 미정',
-    targetKpi: '',
-    reward: '',
-    status: 'in_progress',
-    kpiProgress: 0,
-    approvalItems: [],
-    approvalProgress: 0,
-    overallProgress: 0,
-  }));
-
-  return { missions: [...mappedMissions, ...placeholderMissions], error: null };
+  return { missions: mapMissionRows(missionRows, matches), error: null };
 }
 
 export async function fetchStudentMissionsForCurrentUser(options = {}) {
@@ -201,17 +209,16 @@ export async function fetchStudentMissionsForCurrentUser(options = {}) {
 
   if (!session) return { missions: [], error: '로그인 필요' };
 
-  const { data: applications, error: applicationError } = await supabase
-    .from('student_applications')
-    .select('match_id, accepted_club_id, campaign_posts ( project_info )')
-    .eq('owner_id', session.user.id)
-    .eq('status', 'accepted')
-    .not('match_id', 'is', null);
+  const { applications, error: applicationError } = await getMyStudentApplications({ session });
+  if (applicationError) return { missions: [], error: applicationError };
 
-  if (applicationError) return { missions: [], error: applicationError.message };
+  const acceptedApplications = applications.filter((application) => application.status === 'accepted');
+  const matchIds = [...new Set(acceptedApplications.map(app => app.match_id).filter(Boolean))];
+  const fallbackMissions = acceptedApplications
+    .filter((application) => !application.match_id)
+    .map(mapAcceptedApplicationToMission);
 
-  const matchIds = [...new Set((applications || []).map(app => app.match_id).filter(Boolean))];
-  if (matchIds.length === 0) return { missions: [], error: null };
+  if (matchIds.length === 0) return { missions: fallbackMissions, error: null };
 
   const { data: matches, error: matchError } = await supabase
     .from('club_company_match')
@@ -219,7 +226,7 @@ export async function fetchStudentMissionsForCurrentUser(options = {}) {
     .in('match_id', matchIds);
 
   if (matchError) return { missions: [], error: matchError.message };
-  if (!matches?.length) return { missions: [], error: null };
+  if (!matches?.length) return { missions: fallbackMissions, error: null };
 
   const { data: missionRows, error } = await supabase
     .from('missions')
@@ -233,40 +240,7 @@ export async function fetchStudentMissionsForCurrentUser(options = {}) {
 
   if (error) return { missions: [], error: error.message };
 
-  const projectTitles = new Map();
-  applications?.forEach(app => {
-    if (app.match_id && app.campaign_posts?.project_info?.title) {
-      projectTitles.set(app.match_id, app.campaign_posts.project_info.title);
-    }
-  });
-
-  const mappedMissions = mapMissionRows(missionRows, matches || []).map(m => ({
-    ...m,
-    projectTitle: projectTitles.get(m.match_id) || null,
-  }));
-  const matchesWithMissions = new Set(missionRows?.map(m => m.match_id));
-  const matchesWithoutMissions = (matches || []).filter(m => !matchesWithMissions.has(m.match_id));
-
-  const placeholderMissions = matchesWithoutMissions.map(m => ({
-    id: `placeholder-${m.match_id}`,
-    mission_id: null,
-    match_id: m.match_id,
-    club_id: m.club_id,
-    companyName: m?.companies?.name || '기업',
-    companyIndustry: m?.companies?.industry || '',
-    title: '프로젝트 준비 중',
-    projectTitle: projectTitles.get(m.match_id) || null,
-    period: '일정 미정',
-    targetKpi: '',
-    reward: '',
-    status: 'in_progress',
-    kpiProgress: 0,
-    approvalItems: [],
-    approvalProgress: 0,
-    overallProgress: 0,
-  }));
-
-  return { missions: [...mappedMissions, ...placeholderMissions], error: null };
+  return { missions: [...mapMissionRows(missionRows, matches || []), ...fallbackMissions], error: null };
 }
 
 export async function assignMissionToMatch({ matchId, clubId, title, description, deadline, delayBuffer, targetMetric }) {
