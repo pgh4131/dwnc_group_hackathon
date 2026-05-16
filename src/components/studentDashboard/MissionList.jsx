@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { approvalStatusMeta, calculateMissionProgress } from "../../data/studentDashboardData.js";
 
 function StatusBadge({ status }) {
@@ -6,7 +6,19 @@ function StatusBadge({ status }) {
   return <span className={`student-status-badge student-status-badge--${meta.tone}`}>{meta.label}</span>;
 }
 
+function formatFileSize(size) {
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)}MB`;
+  return `${Math.max(1, Math.round(size / 1024))}KB`;
+}
+
+function truncateFileName(name) {
+  if (name.length <= 20) return name;
+  return `${name.slice(0, 17)}...`;
+}
+
 export default function MissionList({ missions, onMissionsChange }) {
+  const fileInputRefs = useRef({});
+
   const summary = useMemo(() => {
     const total = missions.length || 1;
     const avgOverall = Math.round(missions.reduce((sum, mission) => sum + mission.overallProgress, 0) / total);
@@ -21,6 +33,13 @@ export default function MissionList({ missions, onMissionsChange }) {
   }, [missions]);
 
   function submitApproval(missionId, itemId) {
+    fileInputRefs.current[`${missionId}-${itemId}`]?.click();
+  }
+
+  function handleFileChange(event, missionId, itemId) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     onMissionsChange((rows) =>
       rows.map((mission) => {
         if (mission.id !== missionId) return mission;
@@ -28,11 +47,20 @@ export default function MissionList({ missions, onMissionsChange }) {
         return calculateMissionProgress({
           ...mission,
           approvalItems: mission.approvalItems.map((item) =>
-            item.id === itemId ? { ...item, status: "pending" } : item,
+            item.id === itemId
+              ? {
+                  ...item,
+                  status: "pending",
+                  fileName: file.name,
+                  fileSize: file.size,
+                }
+              : item,
           ),
         });
       }),
     );
+
+    event.target.value = "";
   }
 
   return (
@@ -109,14 +137,27 @@ export default function MissionList({ missions, onMissionsChange }) {
                     <div>
                       <strong>{item.label}</strong>
                       <StatusBadge status={item.status} />
+                      {item.fileName ? (
+                        <span className="student-file-meta">
+                          {truncateFileName(item.fileName)} · {formatFileSize(item.fileSize)}
+                        </span>
+                      ) : null}
                     </div>
+                    <input
+                      type="file"
+                      ref={(element) => {
+                        fileInputRefs.current[`${mission.id}-${item.id}`] = element;
+                      }}
+                      style={{ display: "none" }}
+                      accept=".pdf,.jpg,.png,.mp4,.zip"
+                      onChange={(event) => handleFileChange(event, mission.id, item.id)}
+                    />
                     <button
                       type="button"
                       className="student-small-btn"
-                      disabled={!canSubmit}
                       onClick={() => submitApproval(mission.id, item.id)}
                     >
-                      {canSubmit ? "콘텐츠 업로드" : "제출 완료"}
+                      {canSubmit ? "콘텐츠 업로드" : item.fileName ? "다시 제출" : "제출 완료"}
                     </button>
                   </div>
                 );

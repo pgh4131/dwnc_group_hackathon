@@ -8,7 +8,7 @@ const studentHeaderCopy = {
   ...homepageCopy,
   navigation: [],
   authenticatedNavigation: [],
-  headerActions: [{ label: "기업 대시보드로", href: "/dashboard/company", variant: "secondary" }],
+  headerActions: [],
 };
 
 export default function StudentDashboardHub() {

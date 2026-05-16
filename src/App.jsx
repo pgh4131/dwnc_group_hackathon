@@ -12,6 +12,8 @@ import UserTypeCTASection from './components/UserTypeCTASection.jsx';
 import ValueSection from './components/ValueSection.jsx';
 import CompanyDashboard from './pages/CompanyDashboard.jsx';
 import ClubDetail from './components/dashboard/ClubDetail.jsx';
+import StudentDashboard from './pages/StudentDashboard.jsx';
+import StudentMissionDetail from './pages/StudentMissionDetail.jsx';
 import StudentDashboardHub from './pages/StudentDashboardHub.jsx';
 import StudentProjectDetail from './pages/StudentProjectDetail.jsx';
 import StudentApplicationPage from './pages/StudentApplicationPage.jsx';
@@ -164,6 +166,8 @@ export default function App() {
         <Route path="/dashboard/company" element={<CompanyDashboard />} />
         <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
         <Route path="/dashboard/student" element={<StudentDashboardHub />} />
+        <Route path="/dashboard/student/missions" element={<StudentDashboard />} />
+        <Route path="/dashboard/student/mission/:id" element={<StudentMissionDetail />} />
         <Route path="/dashboard/student/project/:id" element={<StudentProjectDetail />} />
         <Route path="/company/posts/new" element={<PostCreatePage />} />
         <Route path="/company/posts/complete" element={<PostCreateCompletePage />} />
