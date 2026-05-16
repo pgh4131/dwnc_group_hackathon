@@ -3076,6 +3076,15 @@ button {
     transform 0.15s ease;
 }
 
+.hub-mission-card {
+  color: inherit;
+  text-decoration: none;
+}
+
+.hub-project-metrics {
+  margin-bottom: 18px;
+}
+
 .student-mission-overview-card:hover {
   background: #f8fafc;
   border-color: #cbd5e1;

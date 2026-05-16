@@ -19,6 +19,7 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
     targetMetric: ""
   });
   const [missionSent, setMissionSent] = useState(false);
+  const [missionError, setMissionError] = useState("");
   const [showMetricInput, setShowMetricInput] = useState(false);
 
   function toggleSol(id) {
@@ -39,17 +40,25 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
     setMissionSent(false);
   }
 
-  function handleSendMission() {
+  async function handleSendMission() {
     const isFormEmpty = Object.values(missionForm).every(val => !val.trim());
     if (selected.length === 0 && isFormEmpty) return;
-    setMissionSent(true);
-    
-    if (onAssign) {
-      onAssign(missionForm);
+    setMissionError("");
+
+    try {
+      if (onAssign) {
+        await onAssign(missionForm);
+      }
+
+      setMissionSent(true);
+    } catch (error) {
+      setMissionError(error.message || "미션 전달에 실패했습니다.");
+      return;
     }
     
     setTimeout(() => {
       setMissionSent(false);
+      setMissionError("");
       setSelected([]);
       setShowMetricInput(false);
       setMissionForm({
@@ -225,6 +234,11 @@ export default function SolutionPanel({ missionId, solutions = [], initialNotice
         >
           {missionSent ? "✓ 미션 전달 완료" : "동아리에 미션 전달"}
         </button>
+        {missionError ? (
+          <p className="auth-message auth-error" role="alert" style={{ marginTop: 12 }}>
+            {missionError}
+          </p>
+        ) : null}
       </div>
 
       <div className="dashboard-card">

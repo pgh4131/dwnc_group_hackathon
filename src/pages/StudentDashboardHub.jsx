@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { homepageCopy } from '../data/homepage.js';
 import { getAccountType, getCurrentSession, subscribeToAuthChanges } from '../services/auth.js';
+import {
+  buildStudentProjectSummaries,
+  fetchStudentMissionsForCurrentUser,
+} from '../services/missions.js';
 import { getMyStudentApplications } from '../services/studentApplicationStorage.js';
 import {
   getStudentClubProfile,
@@ -22,6 +26,12 @@ const applicationStatusMeta = {
   rejected: { label: '미선택', tone: 'muted', description: '이번 프로젝트에는 선택되지 않았습니다.' },
 };
 
+const missionStatusMeta = {
+  in_progress: { label: '진행 중', tone: 'success' },
+  review: { label: '검토 중', tone: 'warning' },
+  completed: { label: '완료', tone: 'muted' },
+};
+
 const formatDate = (value) => {
   if (!value) return '접수일 미정';
 
@@ -38,8 +48,11 @@ export default function StudentDashboardHub() {
   const [session, setSession] = useState(null);
   const [accountType, setAccountType] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [missions, setMissions] = useState([]);
   const [isApplicationLoading, setIsApplicationLoading] = useState(true);
+  const [isMissionLoading, setIsMissionLoading] = useState(true);
   const [applicationError, setApplicationError] = useState('');
+  const [missionError, setMissionError] = useState('');
 
   const [clubForm, setClubForm] = useState(() => getStudentClubProfile() || {
     clubName: '',
@@ -79,18 +92,26 @@ export default function StudentDashboardHub() {
     async function loadApplications() {
       if (!session) {
         setApplications([]);
+        setMissions([]);
         setApplicationError('로그인 후 지원 현황을 확인할 수 있습니다.');
+        setMissionError('로그인 후 진행 중인 프로젝트를 확인할 수 있습니다.');
         setIsApplicationLoading(false);
+        setIsMissionLoading(false);
         return;
       }
 
       setIsApplicationLoading(true);
+      setIsMissionLoading(true);
       const { applications: nextApplications, error } = await getMyStudentApplications({ session });
+      const { missions: nextMissions, error: nextMissionError } = await fetchStudentMissionsForCurrentUser({ session });
 
       if (isMounted) {
         setApplications(nextApplications);
+        setMissions(nextMissions);
         setApplicationError(error || '');
+        setMissionError(nextMissionError || '');
         setIsApplicationLoading(false);
+        setIsMissionLoading(false);
       }
     }
 
@@ -101,10 +122,18 @@ export default function StudentDashboardHub() {
     };
   }, [session]);
 
-  const acceptedApplications = useMemo(
-    () => applications.filter((application) => application.status === 'accepted'),
-    [applications],
-  );
+  const projectSummaries = useMemo(() => buildStudentProjectSummaries(missions), [missions]);
+
+  const missionStats = useMemo(() => {
+    const total = projectSummaries.length || 1;
+    const activeCount = projectSummaries.filter((project) => project.status !== 'completed').length;
+    const completedCount = projectSummaries.filter((project) => project.status === 'completed').length;
+    const avgProgress = Math.round(
+      projectSummaries.reduce((sum, project) => sum + (project.overallProgress || 0), 0) / total,
+    );
+
+    return { activeCount, completedCount, avgProgress };
+  }, [projectSummaries]);
 
   const handleClubSubmit = (e) => {
     e.preventDefault();
@@ -192,9 +221,6 @@ export default function StudentDashboardHub() {
               <h2 id="hub-shortcuts-title">빠른 이동</h2>
             </div>
             <div className="hub-shortcuts">
-              <Link className="button button-primary" to="/dashboard/student/missions">
-                나의 미션 전체 보기
-              </Link>
               <Link className="button button-secondary" to="/projects">
                 새 공고 둘러보기
               </Link>
@@ -246,50 +272,75 @@ export default function StudentDashboardHub() {
             )}
           </section>
 
-          {clubInfo ? (
-            <section className="hub-panel projects-panel">
-              <div className="hub-panel-header">
-                <h2>진행 중인 프로젝트</h2>
-                {acceptedApplications.length > 0 ? (
-                  <Link className="button button-secondary" to="/dashboard/student/missions">
-                    미션 목록
-                  </Link>
-                ) : null}
+          <section className="hub-panel projects-panel">
+            <div className="hub-panel-header">
+              <h2>진행 중인 프로젝트</h2>
+            </div>
+
+            {isMissionLoading ? (
+              <div className="hub-empty-state">진행 중인 프로젝트를 불러오는 중입니다.</div>
+            ) : missionError ? (
+              <div className="hub-empty-state">{missionError}</div>
+            ) : projectSummaries.length === 0 ? (
+              <div className="hub-empty-state">
+                기업이 선택한 지원서 또는 전달한 미션이 아직 없습니다. 선택되면 이 영역에 프로젝트가 표시됩니다.
               </div>
-              
-              {acceptedApplications.length === 0 ? (
-                <div className="hub-empty-state">
-                  기업이 선택한 지원서가 아직 없습니다. 선택되면 이 영역에 프로젝트가 표시됩니다.
+            ) : (
+              <>
+                <div className="dashboard-metric-grid hub-project-metrics">
+                  <div className="company-metric-card company-metric-card--neutral">
+                    <p className="company-metric-label">진행 중</p>
+                    <p className="company-metric-value">{missionStats.activeCount}</p>
+                    <p className="company-metric-desc">활성 협업 프로젝트</p>
+                  </div>
+                  <div className="company-metric-card company-metric-card--neutral">
+                    <p className="company-metric-label">완료</p>
+                    <p className="company-metric-value">{missionStats.completedCount}</p>
+                    <p className="company-metric-desc">완료된 프로젝트</p>
+                  </div>
+                  <div className="company-metric-card company-metric-card--neutral">
+                    <p className="company-metric-label">평균 진행률</p>
+                    <p className="company-metric-value">{missionStats.avgProgress}%</p>
+                    <p className="company-metric-desc">KPI + 승인 반영</p>
+                  </div>
                 </div>
-              ) : (
-                <div className="hub-project-list">
-                  {acceptedApplications.map((application) => {
-                    const project = application.project || {};
+
+                <div className="student-mission-overview-list hub-mission-list">
+                  {projectSummaries.map((project) => {
+                    const status = missionStatusMeta[project.status] ?? missionStatusMeta.in_progress;
 
                     return (
-                      <Link key={application.id} to="/dashboard/student/missions" className="hub-project-card">
-                        <div className="hub-project-top">
-                          <span className="hub-project-company">{project.startupName || '스타트업'}</span>
-                          <span className="status-pill status-신규">선택됨</span>
+                      <Link
+                        key={project.id}
+                        to={`/dashboard/student/project/${project.match_id ?? project.detailMissionId}`}
+                        className="student-mission-overview-card hub-mission-card"
+                      >
+                        <div className="student-company-avatar" aria-hidden>
+                          {(project.companyName || '').slice(0, 2)}
                         </div>
-                        <h3>{project.title || '선택된 프로젝트'}</h3>
-                        <div className="hub-project-bottom">
-                          <span>{project.period || '활동 기간 협의'}</span>
-                          <span className="hub-project-arrow">미션 보기 →</span>
+                        <div className="student-mission-overview-body">
+                          <div className="student-mission-overview-top">
+                            <span>{project.companyName} · {project.companyIndustry}</span>
+                            <span className={`student-status-badge student-status-badge--${status.tone}`}>{status.label}</span>
+                          </div>
+                          <h2>{project.title}</h2>
+                          <p>{project.latestMissionTitle} · 미션 {project.missionCount}개</p>
+                          <div className="student-progress-label">
+                            <span>전체 진행률</span>
+                            <strong>{project.overallProgress}%</strong>
+                          </div>
+                          <div className="student-progress-track student-progress-track--overall">
+                            <span style={{ width: `${project.overallProgress}%` }} />
+                          </div>
                         </div>
+                        <span className="student-mission-arrow" aria-hidden>›</span>
                       </Link>
                     );
                   })}
                 </div>
-              )}
-            </section>
-          ) : (
-            <section className="hub-panel projects-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '300px', backgroundColor: 'var(--slate-50)', borderStyle: 'dashed' }}>
-              <span style={{ fontSize: '32px', marginBottom: '16px' }}>🔒</span>
-              <h2 style={{ fontSize: '20px', color: 'var(--slate-900)', marginBottom: '8px' }}>프로젝트 목록이 잠겨있습니다</h2>
-              <p style={{ color: 'var(--slate-500)', fontSize: '15px' }}>위에서 동아리/학회 정보를 먼저 등록하셔야<br/>진행 중인 프로젝트를 확인하고 관리할 수 있습니다.</p>
-            </section>
-          )}
+              </>
+            )}
+          </section>
 
         </div>
       </main>

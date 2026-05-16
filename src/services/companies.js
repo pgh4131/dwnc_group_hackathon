@@ -364,7 +364,12 @@ export async function acceptApplication(companyId, application, post = null) {
   // 4. student_applications status → accepted
   const { error: applicationError } = await supabase
     .from('student_applications')
-    .update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .update({
+      status: 'accepted',
+      match_id: match.match_id,
+      accepted_club_id: club.club_id,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', application.id);
 
   if (applicationError) return { match: null, error: applicationError.message };
