@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AuthModal from './components/AuthModal.jsx';
 import FeaturedProjectsSection from './components/FeaturedProjectsSection.jsx';
 import Footer from './components/Footer.jsx';
@@ -9,25 +10,20 @@ import PostCreateCompletePage from './components/post-create/PostCreateCompleteP
 import PostCreatePage from './components/post-create/PostCreatePage.jsx';
 import UserTypeCTASection from './components/UserTypeCTASection.jsx';
 import ValueSection from './components/ValueSection.jsx';
+import CompanyDashboard from './pages/CompanyDashboard.jsx';
+import ClubDetail from './components/dashboard/ClubDetail.jsx';
+import StudentDashboard from './pages/StudentDashboard.jsx';
+import PlaceholderPage, { ProjectDetailPlaceholder } from './pages/PlaceholderPage.jsx';
 import { homepageCopy } from './data/homepage.js';
-import { getCurrentSession, signOut, subscribeToAuthChanges } from './services/auth.js';
+import {
+  getAccountType,
+  getCurrentSession,
+  signOut,
+  subscribeToAuthChanges,
+} from './services/auth.js';
 import { fetchProjects } from './services/projects.js';
 
-export default function App() {
-  const currentPath = window.location.pathname;
-
-  if (currentPath === '/company/posts/new') {
-    return <PostCreatePage />;
-  }
-
-  if (currentPath === '/company/posts/complete') {
-    return <PostCreateCompletePage />;
-  }
-
-  return <HomePage />;
-}
-
-function HomePage() {
+function MainPage() {
   const [projectState, setProjectState] = useState({
     projects: [],
     source: 'supabase',
@@ -35,6 +31,7 @@ function HomePage() {
     error: null,
   });
   const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
@@ -70,12 +67,14 @@ function HomePage() {
 
       if (isMounted) {
         setSession(result.session);
+        setAccountType(await getAccountType(result.session));
       }
     }
 
     loadSession();
-    const unsubscribe = subscribeToAuthChanges((nextSession) => {
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
     });
 
     return () => {
@@ -87,6 +86,16 @@ function HomePage() {
   const handleLogout = async () => {
     await signOut();
     setSession(null);
+    setAccountType(null);
+  };
+
+  const handleStartupClick = () => {
+    if (accountType !== 'startup') {
+      window.alert(homepageCopy.auth.startupOnlyMessage);
+      return;
+    }
+
+    window.location.href = '/startup';
   };
 
   return (
@@ -95,8 +104,10 @@ function HomePage() {
         copy={homepageCopy}
         isAuthenticated={Boolean(session)}
         userEmail={session?.user?.email}
+        accountType={accountType}
         onLoginClick={() => setIsAuthModalOpen(true)}
         onLogoutClick={handleLogout}
+        onStartupClick={handleStartupClick}
       />
       <main>
         <HeroSection copy={homepageCopy.hero} />
@@ -106,8 +117,8 @@ function HomePage() {
           isLoading={projectState.isLoading}
           error={projectState.error}
         />
-        <ValueSection items={homepageCopy.values} />
-        <HowItWorksSection steps={homepageCopy.steps} />
+        <ValueSection items={homepageCopy.values} sectionMeta={homepageCopy.valueSection} />
+        <HowItWorksSection steps={homepageCopy.steps} sectionMeta={homepageCopy.howItWorksSection} />
         <UserTypeCTASection cards={homepageCopy.userCtas} />
       </main>
       <Footer copy={homepageCopy.footer} serviceName={homepageCopy.serviceName} />
@@ -117,5 +128,54 @@ function HomePage() {
         onClose={() => setIsAuthModalOpen(false)}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route
+          path="/projects"
+          element={
+            <PlaceholderPage
+              title="전체 공고"
+              description="전체 프로젝트 목록 페이지는 추후 구현 예정입니다. 메인에서 검색과 샘플 공고를 먼저 확인해 보세요."
+            />
+          }
+        />
+        <Route path="/projects/:id" element={<ProjectDetailPlaceholder />} />
+        <Route
+          path="/startup"
+          element={
+            <PlaceholderPage
+              title="스타트업용"
+              description="스타트업 전용 화면은 추후 구현 예정입니다."
+            />
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PlaceholderPage title="로그인" description="로그인 화면은 추후 구현 예정입니다." />
+          }
+        />
+        <Route
+          path="/clubs"
+          element={
+            <PlaceholderPage
+              title="동아리/학회용"
+              description="동아리·학회 전용 화면은 추후 구현 예정입니다."
+            />
+          }
+        />
+        <Route path="/dashboard/company" element={<CompanyDashboard />} />
+        <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
+        <Route path="/dashboard/student" element={<StudentDashboard />} />
+        <Route path="/company/posts/new" element={<PostCreatePage />} />
+        <Route path="/company/posts/complete" element={<PostCreateCompletePage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

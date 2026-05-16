@@ -1,9 +1,14 @@
+import { Link } from 'react-router-dom';
+
 export default function Header({
   copy,
   isAuthenticated = false,
   userEmail = '',
+  accountType = null,
   onLoginClick,
   onLogoutClick,
+  onStartupClick,
+  extraHeaderActions = null,
 }) {
   const navigationItems = isAuthenticated
     ? [...copy.navigation, ...copy.authenticatedNavigation]
@@ -11,25 +16,34 @@ export default function Header({
 
   return (
     <header className="site-header">
-      <a className="brand" href="/" aria-label={`${copy.serviceName} 홈`}>
+      <Link className="brand" to="/" aria-label={`${copy.serviceName} 홈`}>
         <span className="brand-mark">CB</span>
         <span>{copy.serviceName}</span>
-      </a>
+      </Link>
 
       {navigationItems.length > 0 ? (
         <nav className="main-nav" aria-label="주요 메뉴">
           {navigationItems.map((item) => (
-            <a key={item.href} href={item.href}>
+            <Link key={item.href} to={item.href}>
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
       ) : (
-        <div />
+        <div className="header-nav-spacer" aria-hidden="true" />
       )}
 
       <div className="header-actions">
-        {isAuthenticated && userEmail ? <span className="header-user">{userEmail}</span> : null}
+        {isAuthenticated && userEmail ? (
+          <span className="header-user">{userEmail}</span>
+        ) : null}
+
+        {isAuthenticated ? (
+          <Link className="button button-secondary" to="/clubs/dashboard">
+            {copy.auth.dashboardLabel}
+          </Link>
+        ) : null}
+
         {copy.headerActions.map((action) => {
           if (action.type === 'auth') {
             return isAuthenticated ? (
@@ -53,12 +67,36 @@ export default function Header({
             );
           }
 
+          if (action.type === 'startup') {
+            return (
+              <button
+                key={action.type}
+                className={`button button-${action.variant}`}
+                type="button"
+                onClick={onStartupClick}
+                aria-label={
+                  accountType === 'startup'
+                    ? action.label
+                    : copy.auth.startupOnlyMessage
+                }
+              >
+                {action.label}
+              </button>
+            );
+          }
+
           return (
-            <a key={action.href} className={`button button-${action.variant}`} href={action.href}>
+            <Link
+              key={action.href}
+              className={`button button-${action.variant}`}
+              to={action.href}
+            >
               {action.label}
-            </a>
+            </Link>
           );
         })}
+
+        {extraHeaderActions}
       </div>
     </header>
   );
