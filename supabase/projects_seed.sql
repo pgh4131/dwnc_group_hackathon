@@ -9,6 +9,7 @@ create table if not exists public.projects (
   created_at timestamptz not null default now()
 );
 
+grant usage on schema public to anon, authenticated;
 grant select on public.projects to anon, authenticated;
 
 alter table public.projects enable row level security;
@@ -75,6 +76,24 @@ values
     '4주',
     '활동비 70만원',
     '모집중'
+  ),
+  (
+    'beauty-campus-review',
+    'Glowkit',
+    '뷰티 브랜드 캠퍼스 리뷰 콘텐츠 프로젝트',
+    array['뷰티', '리뷰', '콘텐츠'],
+    '3주',
+    '제품 제공 및 활동비 50만원',
+    '모집중'
+  ),
+  (
+    'career-community-event',
+    'CareerNest',
+    '대학생 커리어 커뮤니티 오프라인 밋업 운영',
+    array['커리어', '커뮤니티', '이벤트'],
+    '5주',
+    '팀 활동비 90만원',
+    '마감임박'
   )
 on conflict (id) do update set
   startup_name = excluded.startup_name,

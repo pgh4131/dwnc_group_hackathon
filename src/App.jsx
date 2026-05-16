@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AuthModal from './components/AuthModal.jsx';
 import FeaturedProjectsSection from './components/FeaturedProjectsSection.jsx';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
@@ -6,16 +7,19 @@ import HeroSection from './components/HeroSection.jsx';
 import HowItWorksSection from './components/HowItWorksSection.jsx';
 import UserTypeCTASection from './components/UserTypeCTASection.jsx';
 import ValueSection from './components/ValueSection.jsx';
-import { featuredProjects, homepageCopy } from './data/homepage.js';
+import { homepageCopy } from './data/homepage.js';
+import { getCurrentSession, signOut, subscribeToAuthChanges } from './services/auth.js';
 import { fetchProjects } from './services/projects.js';
 
 export default function App() {
   const [projectState, setProjectState] = useState({
-    projects: featuredProjects,
-    source: 'mock',
+    projects: [],
+    source: 'supabase',
     isLoading: true,
     error: null,
   });
+  const [session, setSession] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -27,11 +31,9 @@ export default function App() {
         return;
       }
 
-      const shouldUseFallback = result.source !== 'supabase' || Boolean(result.error);
-
       setProjectState({
-        projects: shouldUseFallback ? featuredProjects : result.projects,
-        source: shouldUseFallback ? 'mock' : result.source,
+        projects: result.projects,
+        source: result.source,
         isLoading: false,
         error: result.error,
       });
@@ -44,16 +46,48 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSession() {
+      const result = await getCurrentSession();
+
+      if (isMounted) {
+        setSession(result.session);
+      }
+    }
+
+    loadSession();
+    const unsubscribe = subscribeToAuthChanges((nextSession) => {
+      setSession(nextSession);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    setSession(null);
+  };
+
   return (
     <div className="app-shell">
-      <Header copy={homepageCopy} isAuthenticated={false} />
+      <Header
+        copy={homepageCopy}
+        isAuthenticated={Boolean(session)}
+        userEmail={session?.user?.email}
+        onLoginClick={() => setIsAuthModalOpen(true)}
+        onLogoutClick={handleLogout}
+      />
       <main>
         <HeroSection copy={homepageCopy.hero} />
         <FeaturedProjectsSection
           projects={projectState.projects}
           copy={homepageCopy.projects}
           isLoading={projectState.isLoading}
-          source={projectState.source}
           error={projectState.error}
         />
         <ValueSection items={homepageCopy.values} />
@@ -61,6 +95,11 @@ export default function App() {
         <UserTypeCTASection cards={homepageCopy.userCtas} />
       </main>
       <Footer copy={homepageCopy.footer} serviceName={homepageCopy.serviceName} />
+      <AuthModal
+        copy={homepageCopy.auth}
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </div>
   );
 }

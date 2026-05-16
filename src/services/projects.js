@@ -42,7 +42,7 @@ export async function fetchProjects() {
   if (error) {
     return {
       projects: [],
-      source: 'fallback',
+      source: 'supabase-error',
       error: error.message,
     };
   }

@@ -2,40 +2,46 @@
 
 ## 1. 제품 개요
 
-제품명: `Campus Bridge`
+`Campus Bridge`는 스타트업과 대학 동아리/학회를 연결해 캠퍼스 마케팅 프로젝트를 탐색, 지원, 운영할 수 있게 돕는 B2B 플랫폼이다.
 
-목적: 스타트업과 대학 동아리/학회를 연결해 캠퍼스 마케팅 프로젝트를 탐색, 지원, 운영할 수 있는 메인페이지를 제공한다.
-
-현재 범위:
-
-- 메인페이지 UI
-- 공고 카드 탐색 및 검색
-- Supabase 기반 공고 데이터 연결
-- 미구현 페이지는 링크만 연결
+현재 구현 범위는 메인페이지, Supabase 기반 공고 조회, 공고 검색, Supabase Auth 기반 로그인/회원가입 모달이다.
 
 ## 2. 대상 사용자
 
-- 스타트업 담당자: 대학생 타깃 마케팅 프로젝트를 빠르게 시작하고 싶은 사용자
-- 대학 동아리/학회 구성원: 기업 협업 프로젝트를 찾고 활동 이력을 남기고 싶은 사용자
+- 스타트업 담당자: 대학생 타깃 마케팅 프로젝트를 시작하고 운영하려는 사용자
+- 대학 동아리/학회 구성원: 기업 협업 프로젝트를 찾고 활동 이력을 남기려는 사용자
 
 ## 3. 핵심 사용자 흐름
 
-1. 사용자는 메인페이지에서 서비스 목적을 이해한다.
-2. Hero 바로 아래에서 모집 중인 공고를 확인한다.
-3. 검색창으로 관심 분야, 스타트업명, 프로젝트명을 검색한다.
+1. 사용자는 메인페이지에서 서비스 목적과 프로젝트 운영 흐름을 이해한다.
+2. Hero 바로 아래 공고 섹션에서 Supabase에 저장된 모집 공고를 확인한다.
+3. 검색창으로 스타트업명, 프로젝트명, 태그, 기간, 보상, 모집 상태를 검색한다.
 4. 공고 카드를 클릭해 `/projects/[id]` 상세 페이지로 이동한다.
 5. 더 많은 공고는 `더보기` 버튼으로 `/projects`에서 확인한다.
-6. 스타트업 사용자는 우측 상단 `스타트업용` 버튼으로 이동한다.
-7. 로그인 후에만 `동아리/학회용` 메뉴가 노출된다.
+6. `로그인` 버튼을 누르면 로그인/회원가입 모달이 열린다.
+7. 로그인 이후에는 `동아리/학회용` 메뉴가 노출된다.
+8. 스타트업 사용자는 우측 상단 `스타트업용` 버튼으로 이동한다.
 
 ## 4. 페이지 구조
 
 ### Header
 
 - 좌측: `Campus Bridge` 브랜드
-- 우측: `로그인`, `스타트업용`
-- `공고 등록하기`는 메인에서 제거한다.
-- `동아리/학회용`은 로그인 이후에만 노출한다.
+- 우측: `로그인` 또는 `로그아웃`, `스타트업용`
+- 로그인 상태일 때 사용자 이메일을 표시한다.
+- 로그인 상태일 때만 `동아리/학회용` 메뉴를 노출한다.
+- `공고 등록하기`는 메인에서 노출하지 않는다.
+
+### Auth Modal
+
+- `로그인` 버튼 클릭 시 중앙 모달로 열린다.
+- 모달 내부에서 `로그인` / `회원가입` 탭을 전환한다.
+- 이메일과 비밀번호를 입력한다.
+- 로그인은 Supabase `signInWithPassword`를 사용한다.
+- 회원가입은 Supabase `signUp`을 사용한다.
+- 로그인 성공 시 모달을 닫고 헤더 상태를 갱신한다.
+- 회원가입 성공 시 확인 메시지를 표시한다.
+- 인증 오류는 모달 내부 메시지로 표시한다.
 
 ### Hero
 
@@ -47,12 +53,12 @@
 ### Projects
 
 - Hero 바로 아래 배치한다.
-- Supabase `public.projects` 테이블에서 공고 데이터를 불러온다.
-- Supabase 연결 실패 또는 테이블 미준비 시 로컬 샘플 데이터로 fallback한다.
-- 검색창을 제공한다.
-- 검색 결과 개수를 표시한다.
-- 검색 결과 없음 메시지를 표시한다.
-- 하단 `더보기` 버튼으로 `/projects`에 연결한다.
+- 공고 데이터는 Supabase `public.projects` 테이블에서만 조회한다.
+- 로컬 mock 공고는 화면 데이터로 사용하지 않는다.
+- 테이블이 없거나 RLS/Data API 설정이 잘못되면 오류 안내를 표시한다.
+- 공고가 0개면 “등록된 공고가 없습니다” 빈 상태를 표시한다.
+- 검색 결과가 0개면 검색 빈 상태를 표시한다.
+- 하단 `더보기` 버튼은 `/projects`로 연결한다.
 
 ### Problem / Value
 
@@ -77,36 +83,37 @@
 - 서비스명
 - 해커톤 MVP 설명
 
-## 5. 데이터 요구사항
+## 5. Supabase 데이터 요구사항
 
-### Supabase Table
+### Projects Table
 
 테이블명: `public.projects`
 
 필드:
 
 - `id`: text, primary key
-- `startup_name`: text
-- `title`: text
-- `tags`: text[]
-- `period`: text
-- `reward`: text
-- `status`: text
+- `startup_name`: text, not null
+- `title`: text, not null
+- `tags`: text[], not null
+- `period`: text, not null
+- `reward`: text, not null
+- `status`: text, not null
 - `created_at`: timestamptz
 
 보안/접근:
 
-- `anon`, `authenticated` role에 select 권한 부여
-- RLS 활성화
-- public read policy 생성
+- `anon`, `authenticated` role에 select 권한을 부여한다.
+- RLS를 활성화한다.
+- public read policy를 생성한다.
 
-초기 데이터:
+초기 더미데이터:
 
-- `supabase/projects_seed.sql`로 테이블 생성, 권한 설정, RLS policy, 샘플 공고 insert를 한 번에 실행한다.
+- `supabase/projects_seed.sql`에서 테이블 생성, 권한 설정, RLS policy, 더미 공고 8개 insert를 제공한다.
+- 실제 Supabase 화면 표시를 위해 SQL Editor에서 해당 파일을 실행해야 한다.
 
-### Frontend Data Mapping
+### Frontend Mapping
 
-Supabase row는 화면에서 다음 형태로 normalize한다.
+Supabase row는 화면에서 다음 형태로 변환한다.
 
 - `id`: `slug || id`
 - `startupName`: `startup_name`
@@ -116,18 +123,26 @@ Supabase row는 화면에서 다음 형태로 normalize한다.
 - `reward`: `reward`
 - `status`: `status`
 
-### Fallback
+## 6. Supabase Auth 요구사항
 
-다음 경우에는 `src/data/homepage.js`의 로컬 샘플 공고를 표시한다.
+인증 방식:
 
-- Supabase 환경 변수가 없음
-- `public.projects` 테이블이 없음
-- Data API 권한/RLS 설정 오류
-- 네트워크 오류
+- 이메일/비밀번호 로그인
+- 이메일/비밀번호 회원가입
+- 로그아웃
+- 세션 유지 및 auth state change 구독
 
-사용자에게는 “Supabase 공고 테이블이 준비되지 않아 샘플 공고를 표시 중입니다.” 메시지를 노출한다.
+화면 반영:
 
-## 6. 검색 기능 요구사항
+- 비로그인: `로그인`, `스타트업용`
+- 로그인: 사용자 이메일, `로그아웃`, `스타트업용`, `동아리/학회용`
+
+오류 처리:
+
+- 환경 변수 누락 시 인증 요청을 막고 오류를 표시한다.
+- Supabase Auth 오류 메시지는 모달 내부에 표시한다.
+
+## 7. 검색 기능 요구사항
 
 검색 대상:
 
@@ -142,25 +157,27 @@ Supabase row는 화면에서 다음 형태로 normalize한다.
 
 - 입력 즉시 클라이언트 필터링
 - 대소문자 구분 없음
-- 검색어가 없으면 전체 공고 표시
+- 검색어가 없으면 Supabase에서 불러온 전체 공고 표시
 
 빈 상태:
 
-- `검색 결과가 없습니다. 다른 키워드로 다시 찾아보세요.`
+- 공고 자체가 없을 때: `등록된 공고가 없습니다. Supabase projects 테이블에 공고를 추가해 주세요.`
+- 검색 결과가 없을 때: `검색 결과가 없습니다. 다른 키워드로 다시 찾아보세요.`
 
 결과 카운트:
 
 - `{검색 결과 수} / {전체 공고 수}개 공고`
 
-## 7. 비주얼 방향
+## 8. 비주얼 방향
 
 - 톤: 밝고 신뢰감 있는 B2B SaaS 스타일
-- 배경: 흰색 중심, 일부 섹션에 아주 연한 blue/indigo gradient
+- 배경: 흰색 중심, 일부 섹션에 연한 blue/indigo gradient
 - 카드: 흰색 카드, 둥근 모서리, 얕은 그림자
+- 모달: 중앙 정렬, 반투명 backdrop, 흰색 패널
 - 분위기: 발표용으로 안정적이고 읽기 쉬운 화면
-- 애니메이션: hover 정도의 최소 인터랙션
+- 애니메이션: hover와 focus 정도의 최소 인터랙션
 
-## 8. 디자인 토큰
+## 9. 디자인 토큰
 
 색상:
 
@@ -173,6 +190,8 @@ Supabase row는 화면에서 다음 형태로 normalize한다.
 - Text Strong: `#0f172a`
 - Text Body: `#334155`
 - Text Muted: `#64748b`
+- Error: `#b91c1c`
+- Success: `#047857`
 
 Typography:
 
@@ -189,15 +208,17 @@ Layout:
 - Section vertical spacing: `84px`
 - Card radius: `20px`
 - Button radius: `12px ~ 14px`
+- Auth modal width: `440px`
 - Card grid: desktop 3 columns, tablet 2 columns, mobile 1 column
 
-## 9. 반응형 요구사항
+## 10. 반응형 요구사항
 
 Desktop:
 
 - Header 3영역 배치
 - Hero 2열
 - 공고 카드 3열
+- Auth modal 중앙 배치
 
 Tablet:
 
@@ -210,19 +231,20 @@ Mobile:
 - 버튼 full width
 - 검색창과 결과 카운트 세로 정렬
 - 공고 카드 1열
+- Auth modal은 좌우 14px 여백 유지
 
-## 10. 연결 정책
+## 11. 연결 정책
 
 - 실제 미구현 페이지는 구현하지 않고 링크만 연결한다.
 - 공고 상세: `/projects/[id]`
 - 전체 공고: `/projects`
 - 스타트업용: `/startup`
-- 로그인: `/login`
 - 동아리/학회용: `/clubs`
+- 로그인: 별도 페이지가 아니라 메인페이지 모달
 
-## 11. 환경 변수
+## 12. 환경 변수
 
-Vite 앱에서 사용하는 값:
+Vite 앱:
 
 ```text
 VITE_SUPABASE_URL=https://jrdpdebdbmvoazjsxoek.supabase.co
@@ -235,17 +257,18 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Next 전환용 템플릿에서 사용하는 값:
+Next 전환용 템플릿:
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL=https://jrdpdebdbmvoazjsxoek.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-## 12. 현재 구현 파일
+## 13. 현재 구현 파일
 
 - `src/App.jsx`
 - `src/components/Header.jsx`
+- `src/components/AuthModal.jsx`
 - `src/components/HeroSection.jsx`
 - `src/components/FeaturedProjectsSection.jsx`
 - `src/components/ValueSection.jsx`
@@ -254,15 +277,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 - `src/components/Footer.jsx`
 - `src/components/SectionHeading.jsx`
 - `src/data/homepage.js`
+- `src/services/auth.js`
 - `src/services/projects.js`
 - `src/utils/supabase/client.js`
 - `src/styles.css`
 - `supabase/projects_seed.sql`
 - `supabase/README.md`
 
-## 13. 구현상 주의사항
+## 14. 구현상 주의사항
 
 - 현재 앱은 Vite + React다.
 - `app/page.tsx`, `middleware.ts`, `utils/supabase/*`는 Next 전환용 템플릿이며 현재 Vite 런타임에는 직접 관여하지 않는다.
-- Supabase에 `public.projects` 테이블이 없으면 앱은 정상적으로 샘플 데이터를 보여준다.
-- 실제 DB 데이터 확인을 위해서는 Supabase SQL Editor에서 `supabase/projects_seed.sql`을 실행해야 한다.
+- Supabase `public.projects` 테이블이 없으면 공고 카드가 표시되지 않는다.
+- 실제 공고 표시를 위해 Supabase SQL Editor에서 `supabase/projects_seed.sql`을 실행해야 한다.
+- Supabase Auth에서 이메일 확인 설정이 켜져 있으면 회원가입 후 확인 메일 인증이 필요하다.

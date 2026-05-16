@@ -1,6 +1,7 @@
 # Supabase setup
 
 This Vite app reads homepage project cards from the `public.projects` table.
+Project cards are no longer backed by local mock data.
 
 ## Required env variables
 
@@ -23,6 +24,6 @@ The script:
 - grants read access to `anon` and `authenticated`
 - enables RLS
 - creates a public read policy
-- inserts the current mock project data
+- inserts 8 dummy project rows
 
-If the table does not exist yet, the app falls back to the local sample data in `src/data/homepage.js`.
+If the table does not exist yet, the app shows a setup/error state instead of project cards.

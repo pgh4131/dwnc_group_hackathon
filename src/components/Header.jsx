@@ -1,4 +1,10 @@
-export default function Header({ copy, isAuthenticated = false }) {
+export default function Header({
+  copy,
+  isAuthenticated = false,
+  userEmail = '',
+  onLoginClick,
+  onLogoutClick,
+}) {
   const navigationItems = isAuthenticated
     ? [...copy.navigation, ...copy.authenticatedNavigation]
     : copy.navigation;
@@ -23,11 +29,36 @@ export default function Header({ copy, isAuthenticated = false }) {
       )}
 
       <div className="header-actions">
-        {copy.headerActions.map((action) => (
-          <a key={action.href} className={`button button-${action.variant}`} href={action.href}>
-            {action.label}
-          </a>
-        ))}
+        {isAuthenticated && userEmail ? <span className="header-user">{userEmail}</span> : null}
+        {copy.headerActions.map((action) => {
+          if (action.type === 'auth') {
+            return isAuthenticated ? (
+              <button
+                key="logout"
+                className={`button button-${action.variant}`}
+                type="button"
+                onClick={onLogoutClick}
+              >
+                {copy.auth.logoutLabel}
+              </button>
+            ) : (
+              <button
+                key={action.type}
+                className={`button button-${action.variant}`}
+                type="button"
+                onClick={onLoginClick}
+              >
+                {action.label}
+              </button>
+            );
+          }
+
+          return (
+            <a key={action.href} className={`button button-${action.variant}`} href={action.href}>
+              {action.label}
+            </a>
+          );
+        })}
       </div>
     </header>
   );
