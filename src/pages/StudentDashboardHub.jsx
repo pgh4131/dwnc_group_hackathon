@@ -11,6 +11,7 @@ import { getMyStudentApplications } from '../services/studentApplicationStorage.
 import {
   getStudentClubProfile,
   saveStudentClubProfile,
+  fetchAndCacheProfile,
 } from '../services/studentClubProfileStorage.js';
 
 const studentHeaderCopy = {
@@ -73,9 +74,16 @@ export default function StudentDashboardHub() {
       if (isMounted) {
         setSession(result.session);
         setAccountType(nextAccountType);
-        const nextClubInfo = getStudentClubProfile(result.session);
-        setClubInfo(nextClubInfo);
-        setClubForm(nextClubInfo || emptyClubForm);
+        // Show cached value immediately
+        const cachedInfo = getStudentClubProfile(result.session);
+        setClubInfo(cachedInfo);
+        setClubForm(cachedInfo || emptyClubForm);
+        // Then fetch fresh data from Supabase
+        const freshInfo = await fetchAndCacheProfile(result.session);
+        if (isMounted && freshInfo) {
+          setClubInfo(freshInfo);
+          setClubForm(freshInfo);
+        }
       }
     }
 
@@ -83,7 +91,8 @@ export default function StudentDashboardHub() {
     const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
       setAccountType(await getAccountType(nextSession));
-      const nextClubInfo = getStudentClubProfile(nextSession);
+      const freshInfo = await fetchAndCacheProfile(nextSession);
+      const nextClubInfo = freshInfo || getStudentClubProfile(nextSession);
       setClubInfo(nextClubInfo);
       setClubForm(nextClubInfo || emptyClubForm);
       setIsEditingClub(false);
@@ -144,9 +153,9 @@ export default function StudentDashboardHub() {
     return { activeCount, completedCount, avgProgress };
   }, [projectSummaries]);
 
-  const handleClubSubmit = (e) => {
+  const handleClubSubmit = async (e) => {
     e.preventDefault();
-    const savedProfile = saveStudentClubProfile(clubForm, session);
+    const savedProfile = await saveStudentClubProfile(clubForm, session);
     setClubInfo(savedProfile);
     setClubForm(savedProfile);
     setIsEditingClub(false);

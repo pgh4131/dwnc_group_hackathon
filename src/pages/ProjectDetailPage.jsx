@@ -11,7 +11,7 @@ import {
   subscribeToAuthChanges,
 } from '../services/auth.js';
 import { fetchProjectById } from '../services/projects.js';
-import { hasStudentClubProfile } from '../services/studentClubProfileStorage.js';
+import { hasStudentClubProfile, fetchAndCacheProfile } from '../services/studentClubProfileStorage.js';
 
 const formatCreatedAt = (createdAt) => {
   if (!createdAt) {
@@ -48,6 +48,11 @@ export default function ProjectDetailPage() {
         setSession(result.session);
         setAccountType(await getAccountType(result.session));
         setHasClubProfile(hasStudentClubProfile(result.session));
+        // Fetch from Supabase and re-check
+        await fetchAndCacheProfile(result.session);
+        if (isMounted) {
+          setHasClubProfile(hasStudentClubProfile(result.session));
+        }
       }
     }
 
@@ -55,6 +60,7 @@ export default function ProjectDetailPage() {
     const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
       setAccountType(await getAccountType(nextSession));
+      await fetchAndCacheProfile(nextSession);
       setHasClubProfile(hasStudentClubProfile(nextSession));
     });
 
