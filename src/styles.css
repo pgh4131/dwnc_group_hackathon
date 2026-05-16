@@ -3214,6 +3214,10 @@ button {
   padding: 18px;
 }
 
+.student-section--embedded {
+  padding: 0;
+}
+
 .student-section-head {
   display: flex;
   align-items: flex-start;

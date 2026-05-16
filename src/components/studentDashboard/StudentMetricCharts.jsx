@@ -43,14 +43,14 @@ function ChartBox({ title, subtitle, children }) {
   );
 }
 
-export default function StudentMetricCharts({ rows, myScore, peerScore }) {
+export default function StudentMetricCharts({ rows, myScore, peerScore, embedded = false }) {
   const [period, setPeriod] = useState("week");
   const filteredRows = useMemo(() => sliceByPeriod(rows, period), [rows, period]);
   const latest = filteredRows[filteredRows.length - 1] ?? {};
   const avgCtr = average(filteredRows, "ctr");
 
   return (
-    <section className="dashboard-card student-section">
+    <section className={embedded ? "student-section student-section--embedded" : "dashboard-card student-section"}>
       <div className="student-section-head">
         <div>
           <p className="dashboard-section-label">Marketing Metrics</p>
