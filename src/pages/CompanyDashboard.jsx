@@ -42,7 +42,7 @@ export default function CompanyDashboard() {
       <main className="section-wrap dashboard-main">
         <div className="dashboard-page-title-row">
           <h1 className="dashboard-page-title dashboard-page-title--inline">기업 대시보드</h1>
-          <Link to="/startup" className="company-page-post-btn">
+          <Link to="/company/posts/new" className="company-page-post-btn">
             + 공고 등록하기
           </Link>
         </div>

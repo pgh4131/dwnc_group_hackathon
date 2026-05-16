@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Footer from '../Footer.jsx';
 import Header from '../Header.jsx';
 import { homepageCopy } from '../../data/homepage.js';
@@ -20,13 +21,12 @@ export default function PostCreateCompletePage() {
               : '새 공고가 임시 저장소에 등록되었습니다.'}
           </p>
           <div className="complete-actions">
-            {/* TODO: 학생용 공고 상세 페이지가 준비되면 `/projects/${postId}`로 연결하세요. */}
-            <a className="button button-primary button-large" href="/company/posts/new">
+            <Link className="button button-primary button-large" to="/dashboard/company">
+              스타트업 대시보드로 돌아가기
+            </Link>
+            <Link className="button button-secondary button-large" to="/company/posts/new">
               새 공고 작성하기
-            </a>
-            <a className="button button-secondary button-large" href="/">
-              메인으로 돌아가기
-            </a>
+            </Link>
           </div>
         </section>
       </main>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { signInWithEmail, signUpWithEmail } from '../services/auth.js';
 
-export default function AuthModal({ copy, isOpen, onClose }) {
+export default function AuthModal({ copy, isOpen, notice = '', onClose }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,6 +50,12 @@ export default function AuthModal({ copy, isOpen, onClose }) {
             ×
           </button>
         </div>
+
+        {notice ? (
+          <p className="auth-message auth-notice" role="status">
+            {notice}
+          </p>
+        ) : null}
 
         <div className="auth-tabs" role="tablist" aria-label="인증 방식">
           <button

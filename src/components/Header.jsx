@@ -5,14 +5,15 @@ export default function Header({
   isAuthenticated = false,
   userEmail = '',
   accountType = null,
-  onLoginClick,
-  onLogoutClick,
+  onLoginClick = () => {},
+  onLogoutClick = () => {},
   onStartupClick,
   extraHeaderActions = null,
 }) {
   const navigationItems = isAuthenticated
     ? [...copy.navigation, ...copy.authenticatedNavigation]
     : copy.navigation;
+  const dashboardHref = accountType === 'startup' ? '/dashboard/company' : '/dashboard/student';
 
   return (
     <header className="site-header">
@@ -37,7 +38,7 @@ export default function Header({
         ) : null}
 
         {isAuthenticated ? (
-          <Link className="button button-secondary" to="/clubs/dashboard">
+          <Link className="button button-secondary" to={dashboardHref}>
             {copy.auth.dashboardLabel}
           </Link>
         ) : null}
@@ -66,20 +67,30 @@ export default function Header({
           }
 
           if (action.type === 'startup') {
-            return (
+            return onStartupClick ? (
               <button
                 key={action.type}
                 className={`button button-${action.variant}`}
                 type="button"
                 onClick={onStartupClick}
                 aria-label={
-                  accountType === 'startup'
+                  !isAuthenticated
+                    ? copy.auth.loginRequiredMessage
+                    : accountType === 'startup'
                     ? action.label
                     : copy.auth.startupOnlyMessage
                 }
               >
                 {action.label}
               </button>
+            ) : (
+              <Link
+                key={action.href}
+                className={`button button-${action.variant}`}
+                to={action.href}
+              >
+                {action.label}
+              </Link>
             );
           }
 

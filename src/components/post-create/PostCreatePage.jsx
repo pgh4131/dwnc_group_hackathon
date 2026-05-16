@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Footer from '../Footer.jsx';
 import Header from '../Header.jsx';
 import CompanyInfoSection from './CompanyInfoSection.jsx';
@@ -68,6 +69,7 @@ const validateValues = (values) => {
 };
 
 export default function PostCreatePage() {
+  const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
@@ -120,9 +122,8 @@ export default function PostCreatePage() {
     const createdPost = createCampaignPost(values);
     setSuccessMessage('공고가 등록되었습니다');
 
-    // TODO: 상세 페이지가 완성되면 `/projects/${createdPost.id}`로 이동하도록 변경하세요.
     window.setTimeout(() => {
-      window.location.assign(`/company/posts/complete?id=${createdPost.id}`);
+      navigate(`/company/posts/complete?id=${createdPost.id}`);
     }, 450);
   };
 

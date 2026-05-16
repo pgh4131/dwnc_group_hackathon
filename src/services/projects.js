@@ -25,6 +25,7 @@ export const normalizeProject = (project) => ({
   period: project.period || project.activity_period || '기간 협의',
   reward: project.reward || project.compensation || '보상 협의',
   status: project.status || '모집중',
+  createdAt: project.created_at || null,
 });
 
 export async function fetchProjects() {
@@ -49,6 +50,37 @@ export async function fetchProjects() {
 
   return {
     projects: (data || []).map(normalizeProject),
+    source: 'supabase',
+    error: null,
+  };
+}
+
+export async function fetchProjectById(projectId) {
+  if (!isSupabaseConfigured) {
+    return {
+      project: null,
+      source: 'unconfigured',
+      error: 'Supabase 환경 변수가 설정되지 않았습니다.',
+    };
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from(PROJECTS_TABLE)
+    .select('*')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      project: null,
+      source: 'supabase-error',
+      error: error.message,
+    };
+  }
+
+  return {
+    project: data ? normalizeProject(data) : null,
     source: 'supabase',
     error: null,
   };
