@@ -245,17 +245,33 @@ export async function fetchStudentMissionsForCurrentUser(options = {}) {
   if (applicationError) return { missions: [], error: applicationError };
 
   const acceptedApplications = applications.filter((application) => application.status === 'accepted');
-  const matchIds = [...new Set(acceptedApplications.map(app => app.match_id).filter(Boolean))];
+
+  // Extract match_ids AND accepted_club_ids that belong to this user
+  const userMatchIds = [...new Set(acceptedApplications.map(app => app.match_id).filter(Boolean))];
+  const userClubIds = [...new Set(acceptedApplications.map(app => app.accepted_club_id).filter(Boolean))];
+
   const fallbackMissions = acceptedApplications
     .filter((application) => !application.match_id)
     .map(mapAcceptedApplicationToMission);
 
-  const { data: matches, error: matchError } = await supabase
+  if (userMatchIds.length === 0 && fallbackMissions.length === 0) {
+    return { missions: [], error: null };
+  }
+
+  // Double-filter: match_id must belong to this user's club
+  let matchQuery = supabase
     .from('club_company_match')
     .select('match_id, club_id, companies(name, industry)')
-    .in('match_id', matchIds.length > 0 ? matchIds : [-1]);
+    .in('match_id', userMatchIds.length > 0 ? userMatchIds : [-1]);
 
+  if (userClubIds.length > 0) {
+    matchQuery = matchQuery.in('club_id', userClubIds);
+  }
+
+  const { data: matches, error: matchError } = await matchQuery;
   if (matchError) return { missions: [], error: matchError.message };
+
+  const validMatchIds = (matches || []).map(m => m.match_id);
 
   const { data: missionRows, error } = await supabase
     .from('missions')
@@ -264,7 +280,7 @@ export async function fetchStudentMissionsForCurrentUser(options = {}) {
       mission_progress(progress_percent, status),
       mission_deliverables(*)
     `)
-    .in('match_id', matchIds.length > 0 ? matchIds : [-1])
+    .in('match_id', validMatchIds.length > 0 ? validMatchIds : [-1])
     .order('created_at', { ascending: false });
 
   if (error) return { missions: [], error: error.message };
