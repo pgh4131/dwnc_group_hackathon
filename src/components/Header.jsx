@@ -37,7 +37,7 @@ export default function Header({
         ) : null}
 
         {isAuthenticated ? (
-          <Link className="button button-secondary" to="/clubs/dashboard">
+          <Link className="button button-secondary" to={accountType === 'startup' ? '/dashboard/company' : '/dashboard/student'}>
             {copy.auth.dashboardLabel}
           </Link>
         ) : null}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import AuthModal from './components/AuthModal.jsx';
 import FeaturedProjectsSection from './components/FeaturedProjectsSection.jsx';
 import Footer from './components/Footer.jsx';
@@ -24,6 +24,7 @@ import {
 import { fetchProjects } from './services/projects.js';
 
 function MainPage() {
+  const navigate = useNavigate();
   const [projectState, setProjectState] = useState({
     projects: [],
     source: 'supabase',
@@ -95,7 +96,7 @@ function MainPage() {
       return;
     }
 
-    window.location.href = '/startup';
+    navigate('/dashboard/company');
   };
 
   return (
