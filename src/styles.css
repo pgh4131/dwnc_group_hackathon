@@ -3175,3 +3175,147 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* Hub Layout */
+.hub-grid {
+  display: grid;
+  gap: 32px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hub-panel {
+  padding: 32px;
+  border: 1px solid var(--slate-200);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.04);
+}
+
+.hub-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.hub-panel-header h2 {
+  margin: 0;
+  color: var(--slate-900);
+  font-size: 24px;
+}
+
+.club-info-form {
+  display: grid;
+  gap: 16px;
+}
+
+.form-group {
+  display: grid;
+  gap: 8px;
+}
+
+.form-group label {
+  color: var(--slate-700);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.form-group input {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--slate-200);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.28);
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.club-info-view {
+  display: grid;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item span {
+  color: var(--slate-500);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.info-item strong {
+  color: var(--slate-900);
+  font-size: 18px;
+}
+
+.hub-project-list {
+  display: grid;
+  gap: 16px;
+}
+
+.hub-project-card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border: 1px solid var(--slate-200);
+  border-radius: 16px;
+  background: var(--slate-50);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.hub-project-card:hover {
+  transform: translateY(-2px);
+  border-color: #bfdbfe;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
+  background: #ffffff;
+}
+
+.hub-project-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.hub-project-company {
+  color: var(--slate-500);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.hub-project-card h3 {
+  margin: 0 0 16px 0;
+  color: var(--slate-900);
+  font-size: 20px;
+}
+
+.hub-project-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  color: var(--slate-600);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.hub-project-arrow {
+  color: var(--blue-700);
+}
