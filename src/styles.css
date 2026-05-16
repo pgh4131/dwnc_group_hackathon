@@ -350,6 +350,28 @@ a {
   margin-bottom: 24px;
 }
 
+.project-data-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -12px 0 24px;
+  padding: 14px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--slate-700);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.project-data-status span {
+  color: var(--slate-500);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
 .project-search {
   display: grid;
   width: min(100%, 520px);
@@ -642,6 +664,15 @@ a {
   .project-toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .project-data-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .project-data-status span {
+    text-align: left;
   }
 
   .project-count {

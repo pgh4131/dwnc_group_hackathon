@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import SectionHeading from './SectionHeading.jsx';
 
-export default function FeaturedProjectsSection({ projects, copy }) {
+export default function FeaturedProjectsSection({ projects, copy, isLoading, source, error }) {
   const [searchTerm, setSearchTerm] = useState('');
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
@@ -34,6 +34,13 @@ export default function FeaturedProjectsSection({ projects, copy }) {
           title="모집 중인 캠퍼스 프로젝트"
           description="메인페이지에서 바로 공고를 확인하고, 관심 있는 프로젝트는 상세 페이지로 이동할 수 있습니다."
         />
+
+        {(isLoading || source === 'mock') && (
+          <div className="project-data-status" role="status">
+            {isLoading ? copy.loadingMessage : copy.fallbackMessage}
+            {!isLoading && error ? <span>{error}</span> : null}
+          </div>
+        )}
 
         <div className="project-toolbar">
           <label className="project-search" htmlFor="project-search">

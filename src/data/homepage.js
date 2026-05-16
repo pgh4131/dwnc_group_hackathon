@@ -79,6 +79,8 @@ export const homepageCopy = {
     searchLabel: '프로젝트 검색',
     searchPlaceholder: '스타트업명, 분야, 프로젝트명을 검색하세요',
     emptyMessage: '검색 결과가 없습니다. 다른 키워드로 다시 찾아보세요.',
+    loadingMessage: 'Supabase에서 공고를 불러오는 중입니다.',
+    fallbackMessage: 'Supabase 공고 테이블이 준비되지 않아 샘플 공고를 표시 중입니다.',
     moreLabel: '더보기',
     moreHref: '/projects',
   },
