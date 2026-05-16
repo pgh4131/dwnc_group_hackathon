@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import SectionHeading from './SectionHeading.jsx';
 
 export default function FeaturedProjectsSection({ projects, copy, isLoading, error }) {
@@ -30,9 +31,9 @@ export default function FeaturedProjectsSection({ projects, copy, isLoading, err
     <section className="featured-section section-spacing">
       <div className="section-wrap">
         <SectionHeading
-          eyebrow="Featured Projects"
-          title="모집 중인 캠퍼스 프로젝트"
-          description="메인페이지에서 바로 공고를 확인하고, 관심 있는 프로젝트는 상세 페이지로 이동할 수 있습니다."
+          eyebrow={copy.sectionEyebrow}
+          title={copy.sectionTitle}
+          description={copy.sectionDescription}
         />
 
         {(isLoading || error) && (
@@ -51,9 +52,10 @@ export default function FeaturedProjectsSection({ projects, copy, isLoading, err
               value={searchTerm}
               placeholder={copy.searchPlaceholder}
               onChange={(event) => setSearchTerm(event.target.value)}
+              autoComplete="off"
             />
           </label>
-          <span className="project-count">
+          <span className="project-count" aria-live="polite">
             {filteredProjects.length} / {projects.length}개 공고
           </span>
         </div>
@@ -61,7 +63,7 @@ export default function FeaturedProjectsSection({ projects, copy, isLoading, err
         {filteredProjects.length > 0 ? (
           <div className="project-grid">
             {filteredProjects.map((project) => (
-              <a className="project-card" href={`/projects/${project.id}`} key={project.id}>
+              <Link className="project-card" to={`/projects/${project.id}`} key={project.id}>
                 <div className="project-card-top">
                   <span className="startup-name">{project.startupName}</span>
                   <span className={`status-pill status-${project.status}`}>{project.status}</span>
@@ -82,7 +84,7 @@ export default function FeaturedProjectsSection({ projects, copy, isLoading, err
                     <dd>{project.reward}</dd>
                   </div>
                 </dl>
-              </a>
+              </Link>
             ))}
           </div>
         ) : (
@@ -92,9 +94,9 @@ export default function FeaturedProjectsSection({ projects, copy, isLoading, err
         )}
 
         <div className="project-more">
-          <a className="button button-secondary button-large" href={copy.moreHref}>
+          <Link className="button button-secondary button-large" to={copy.moreHref}>
             {copy.moreLabel}
-          </a>
+          </Link>
         </div>
       </div>
     </section>

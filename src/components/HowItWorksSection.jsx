@@ -1,12 +1,12 @@
 import SectionHeading from './SectionHeading.jsx';
 
-export default function HowItWorksSection({ steps }) {
+export default function HowItWorksSection({ steps, sectionMeta }) {
   return (
     <section className="section-wrap section-spacing">
       <SectionHeading
-        eyebrow="How It Works"
-        title="프로젝트는 네 단계로 운영됩니다"
-        description="메인페이지에서는 전체 흐름만 보여주고, 세부 기능은 이후 대시보드와 상세 페이지에서 연결할 수 있습니다."
+        eyebrow={sectionMeta.eyebrow}
+        title={sectionMeta.title}
+        description={sectionMeta.description}
       />
       <ol className="step-list">
         {steps.map((step, index) => (
