@@ -67,9 +67,8 @@ export default function PostApplicationsPage() {
   };
 
   const handleAccept = async (application) => {
-    if (!company) return;
     setProcessingId(application.id);
-    const { error } = await acceptApplication(company.company_id, application);
+    const { error } = await acceptApplication(company?.company_id, application, post);
     if (error) {
       alert(`선택 실패: ${error}`);
       setProcessingId(null);
@@ -79,6 +78,7 @@ export default function PostApplicationsPage() {
       prev.map(a => a.id === application.id ? { ...a, status: 'accepted' } : a)
     );
     setProcessingId(null);
+    navigate('/dashboard/company');
   };
 
   const companyHeaderCopy = {

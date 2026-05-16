@@ -13,14 +13,31 @@ const createId = (officialName, createdAt) => {
 
 const normalizeApplication = (application, project = null) => {
   if (!application) return null;
+  const linkedPost = application.campaign_posts || application.campaign_post || null;
+  const linkedProject = project || (linkedPost
+    ? {
+        id: String(linkedPost.id),
+        title: linkedPost.project_info?.title || '제목 없는 프로젝트',
+        startupName:
+          linkedPost.company_info?.serviceName ||
+          linkedPost.company_info?.companyName ||
+          '스타트업',
+        period: linkedPost.project_info?.period || '기간 협의',
+        reward: linkedPost.reward_and_condition?.rewardSummary || '보상 협의',
+        source: 'campaign_posts',
+      }
+    : null);
 
   return {
     ...application,
-    project: project
+    project: linkedProject
       ? {
-          id: String(project.id),
-          title: project.title,
-          startupName: project.startupName,
+          id: String(linkedProject.id),
+          title: linkedProject.title,
+          startupName: linkedProject.startupName,
+          period: linkedProject.period,
+          reward: linkedProject.reward,
+          source: linkedProject.source,
         }
       : application.project || null,
     club: application.club || application.club_info || {},
@@ -49,16 +66,83 @@ export const getLatestStudentApplication = async () => {
   return applications[0] ?? null;
 };
 
-export const getStudentApplicationByProjectId = async (projectId, project = null) => {
-  if (!projectId || !isSupabaseConfigured) return null;
+export const getMyStudentApplications = async (options = {}) => {
+  if (!isSupabaseConfigured) return { applications: [], error: 'Supabase 미설정' };
   const supabase = createClient();
+  let session = options.session || null;
+
+  if (!session) {
+    const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      return { applications: [], error: sessionError.message };
+    }
+    session = currentSession;
+  }
+
+  if (!session) {
+    return { applications: [], error: '로그인 필요' };
+  }
+
   const { data, error } = await supabase
     .from('student_applications')
     .select('*')
+    .eq('owner_id', session.user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to fetch my student applications:', error.message);
+    return { applications: [], error: error.message };
+  }
+
+  const applications = data || [];
+  const postIds = [...new Set(applications.map((application) => application.post_id).filter(Boolean))];
+  let postsById = new Map();
+
+  if (postIds.length > 0) {
+    const { data: posts, error: postsError } = await supabase
+      .from('campaign_posts')
+      .select('*')
+      .in('id', postIds);
+
+    if (postsError) {
+      console.error('Failed to fetch application posts:', postsError.message);
+    } else {
+      postsById = new Map((posts || []).map((post) => [post.id, post]));
+    }
+  }
+
+  return {
+    applications: applications.map((application) =>
+      normalizeApplication({
+        ...application,
+        campaign_post: postsById.get(application.post_id) || null,
+      }),
+    ),
+    error: null,
+  };
+};
+
+export const getStudentApplicationByProjectId = async (projectId, project = null, options = {}) => {
+  if (!projectId || !isSupabaseConfigured) return null;
+  const supabase = createClient();
+  let session = options.session || null;
+
+  if (!session) {
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    session = currentSession;
+  }
+
+  if (!session) return null;
+
+  let query = supabase
+    .from('student_applications')
+    .select('*')
     .eq('post_id', String(projectId))
+    .eq('owner_id', session.user.id)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     console.error('Failed to fetch student application:', error.message);

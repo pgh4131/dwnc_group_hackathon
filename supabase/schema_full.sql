@@ -464,6 +464,27 @@ CREATE POLICY "owner can manage applications"
   USING (owner_id = (SELECT auth.uid()))
   WITH CHECK (owner_id = (SELECT auth.uid()));
 
+DROP POLICY IF EXISTS "post owner can update applications" ON public.student_applications;
+CREATE POLICY "post owner can update applications"
+  ON public.student_applications FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.campaign_posts
+      WHERE campaign_posts.id = student_applications.post_id
+        AND campaign_posts.owner_id = (SELECT auth.uid())
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.campaign_posts
+      WHERE campaign_posts.id = student_applications.post_id
+        AND campaign_posts.owner_id = (SELECT auth.uid())
+    )
+  );
+
 -- ========================
 -- Grant sequence usage for auto-increment
 -- ========================

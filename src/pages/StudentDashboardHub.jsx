@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { homepageCopy } from '../data/homepage.js';
+import { getAccountType, getCurrentSession, subscribeToAuthChanges } from '../services/auth.js';
+import { getMyStudentApplications } from '../services/studentApplicationStorage.js';
 import {
   getStudentClubProfile,
   saveStudentClubProfile,
 } from '../services/studentClubProfileStorage.js';
-
-// TODO: fetch active club projects from Supabase once club_id is resolved.
-const studentProjectsList = [];
 
 const studentHeaderCopy = {
   ...homepageCopy,
@@ -17,9 +16,30 @@ const studentHeaderCopy = {
   headerActions: [],
 };
 
+const applicationStatusMeta = {
+  pending: { label: '검토 중', tone: 'warning', description: '기업이 지원서를 검토하고 있습니다.' },
+  accepted: { label: '선택됨', tone: 'success', description: '기업이 이 지원서를 선택했습니다.' },
+  rejected: { label: '미선택', tone: 'muted', description: '이번 프로젝트에는 선택되지 않았습니다.' },
+};
+
+const formatDate = (value) => {
+  if (!value) return '접수일 미정';
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
+};
+
 export default function StudentDashboardHub() {
   const [clubInfo, setClubInfo] = useState(() => getStudentClubProfile());
   const [isEditingClub, setIsEditingClub] = useState(false);
+  const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [isApplicationLoading, setIsApplicationLoading] = useState(true);
+  const [applicationError, setApplicationError] = useState('');
 
   const [clubForm, setClubForm] = useState(() => getStudentClubProfile() || {
     clubName: '',
@@ -27,6 +47,64 @@ export default function StudentDashboardHub() {
     owner: '',
     description: '',
   });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSession() {
+      const result = await getCurrentSession();
+      const nextAccountType = await getAccountType(result.session);
+
+      if (isMounted) {
+        setSession(result.session);
+        setAccountType(nextAccountType);
+      }
+    }
+
+    loadSession();
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
+      setSession(nextSession);
+      setAccountType(await getAccountType(nextSession));
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadApplications() {
+      if (!session) {
+        setApplications([]);
+        setApplicationError('로그인 후 지원 현황을 확인할 수 있습니다.');
+        setIsApplicationLoading(false);
+        return;
+      }
+
+      setIsApplicationLoading(true);
+      const { applications: nextApplications, error } = await getMyStudentApplications({ session });
+
+      if (isMounted) {
+        setApplications(nextApplications);
+        setApplicationError(error || '');
+        setIsApplicationLoading(false);
+      }
+    }
+
+    loadApplications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session]);
+
+  const acceptedApplications = useMemo(
+    () => applications.filter((application) => application.status === 'accepted'),
+    [applications],
+  );
 
   const handleClubSubmit = (e) => {
     e.preventDefault();
@@ -43,7 +121,12 @@ export default function StudentDashboardHub() {
 
   return (
     <div className="app-shell">
-      <Header copy={studentHeaderCopy} isAuthenticated={false} />
+      <Header
+        copy={studentHeaderCopy}
+        isAuthenticated={Boolean(session)}
+        userEmail={session?.user?.email}
+        accountType={accountType}
+      />
       <main className="section-wrap section-spacing">
         <div className="hub-grid">
           
@@ -118,30 +201,87 @@ export default function StudentDashboardHub() {
             </div>
           </section>
 
+          <section className="hub-panel applications-panel" aria-labelledby="hub-applications-title">
+            <div className="hub-panel-header">
+              <h2 id="hub-applications-title">내 지원 현황</h2>
+              <Link className="button button-secondary" to="/projects">
+                공고 더 보기
+              </Link>
+            </div>
+
+            {isApplicationLoading ? (
+              <div className="hub-empty-state">지원 내역을 불러오는 중입니다.</div>
+            ) : applicationError ? (
+              <div className="hub-empty-state">{applicationError}</div>
+            ) : applications.length === 0 ? (
+              <div className="hub-empty-state">아직 지원한 공고가 없습니다.</div>
+            ) : (
+              <div className="application-status-list">
+                {applications.map((application) => {
+                  const project = application.project || {};
+                  const status = applicationStatusMeta[application.status] || applicationStatusMeta.pending;
+
+                  return (
+                    <article key={application.id} className="application-status-card">
+                      <div className="application-status-top">
+                        <span className="hub-project-company">{project.startupName || '스타트업'}</span>
+                        <span className={`student-status-badge student-status-badge--${status.tone}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                      <h3>{project.title || '연결된 공고 정보 없음'}</h3>
+                      <p>{status.description}</p>
+                      <div className="application-status-bottom">
+                        <span>{formatDate(application.createdAt)}</span>
+                        {project.id ? (
+                          <Link to={`/projects/${project.id}`}>
+                            공고 보기
+                          </Link>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
           {clubInfo ? (
             <section className="hub-panel projects-panel">
               <div className="hub-panel-header">
                 <h2>진행 중인 프로젝트</h2>
-                <Link className="button button-secondary" to="/dashboard/student/missions">
-                  미션 목록
-                </Link>
+                {acceptedApplications.length > 0 ? (
+                  <Link className="button button-secondary" to="/dashboard/student/missions">
+                    미션 목록
+                  </Link>
+                ) : null}
               </div>
               
-              <div className="hub-project-list">
-                {studentProjectsList.map(project => (
-                  <Link key={project.id} to={`/dashboard/student/project/${project.id}`} className="hub-project-card">
-                    <div className="hub-project-top">
-                      <span className="hub-project-company">{project.companyName}</span>
-                      <span className={`status-pill status-${project.status === '진행중' ? '신규' : '마감임박'}`}>{project.status}</span>
-                    </div>
-                    <h3>{project.campaignName}</h3>
-                    <div className="hub-project-bottom">
-                      <span>마감일: {project.dueDate}</span>
-                      <span className="hub-project-arrow">상세 보기 →</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              {acceptedApplications.length === 0 ? (
+                <div className="hub-empty-state">
+                  기업이 선택한 지원서가 아직 없습니다. 선택되면 이 영역에 프로젝트가 표시됩니다.
+                </div>
+              ) : (
+                <div className="hub-project-list">
+                  {acceptedApplications.map((application) => {
+                    const project = application.project || {};
+
+                    return (
+                      <Link key={application.id} to="/dashboard/student/missions" className="hub-project-card">
+                        <div className="hub-project-top">
+                          <span className="hub-project-company">{project.startupName || '스타트업'}</span>
+                          <span className="status-pill status-신규">선택됨</span>
+                        </div>
+                        <h3>{project.title || '선택된 프로젝트'}</h3>
+                        <div className="hub-project-bottom">
+                          <span>{project.period || '활동 기간 협의'}</span>
+                          <span className="hub-project-arrow">미션 보기 →</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           ) : (
             <section className="hub-panel projects-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '300px', backgroundColor: 'var(--slate-50)', borderStyle: 'dashed' }}>
