@@ -9,15 +9,23 @@ export default function HeroSection({ copy, onStartupClick }) {
         <p className="hero-description">{copy.description}</p>
         <div className="hero-actions">
           {copy.actions.map((action) => {
-            if (action.href === '/startup' && onStartupClick) {
-              return (
-                <button key={action.href} type="button" className={`button button-${action.variant} button-large`} onClick={onStartupClick}>
-                  {action.label}
-                </button>
-              );
-            }
+            const shouldUseStartupGate =
+              (action.type === 'startup' || action.href === '/startup') && onStartupClick;
+
             return (
-              <Link key={action.href} className={`button button-${action.variant} button-large`} to={action.href}>
+              <Link
+                key={action.href}
+                className={`button button-${action.variant} button-large`}
+                to={action.href}
+                onClick={
+                  shouldUseStartupGate
+                    ? (event) => {
+                        event.preventDefault();
+                        onStartupClick(event);
+                      }
+                    : undefined
+                }
+              >
                 {action.label}
               </Link>
             );

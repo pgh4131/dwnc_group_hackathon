@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route, useNavigate } from 'react-router-dom';
 import AuthModal from './components/AuthModal.jsx';
 import FeaturedProjectsSection from './components/FeaturedProjectsSection.jsx';
 import Footer from './components/Footer.jsx';
@@ -17,7 +17,9 @@ import StudentMissionDetail from './pages/StudentMissionDetail.jsx';
 import StudentDashboardHub from './pages/StudentDashboardHub.jsx';
 import StudentProjectDetail from './pages/StudentProjectDetail.jsx';
 import StudentApplicationPage from './pages/StudentApplicationPage.jsx';
-import PlaceholderPage, { ProjectDetailPlaceholder } from './pages/PlaceholderPage.jsx';
+import PlaceholderPage from './pages/PlaceholderPage.jsx';
+import ProjectDetailPage from './pages/ProjectDetailPage.jsx';
+import ProjectsPage from './pages/ProjectsPage.jsx';
 import { homepageCopy } from './data/homepage.js';
 import {
   getAccountType,
@@ -38,6 +40,7 @@ function MainPage() {
   const [session, setSession] = useState(null);
   const [accountType, setAccountType] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authNotice, setAuthNotice] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -94,13 +97,28 @@ function MainPage() {
     setAccountType(null);
   };
 
-  const handleStartupClick = (e) => {
-    if (e) e.preventDefault();
+  const openAuthModal = (notice = '') => {
+    setAuthNotice(notice);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+    setAuthNotice('');
+  };
+
+  const handleStartupClick = (event) => {
+    if (event) {
+      event.preventDefault();
+    }
+
+    if (!session) {
+      openAuthModal(homepageCopy.auth.loginRequiredMessage);
+      return;
+    }
+
     if (accountType !== 'startup') {
-      window.alert('스타트업용 계정으로 로그인해 주세요.');
-      if (!session) {
-        setIsAuthModalOpen(true);
-      }
+      window.alert(homepageCopy.auth.startupOnlyMessage);
       return;
     }
 
@@ -114,7 +132,7 @@ function MainPage() {
         isAuthenticated={Boolean(session)}
         userEmail={session?.user?.email}
         accountType={accountType}
-        onLoginClick={() => setIsAuthModalOpen(true)}
+        onLoginClick={() => openAuthModal()}
         onLogoutClick={handleLogout}
         onStartupClick={handleStartupClick}
       />
@@ -134,7 +152,8 @@ function MainPage() {
       <AuthModal
         copy={homepageCopy.auth}
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        notice={authNotice}
+        onClose={closeAuthModal}
       />
     </div>
   );
@@ -145,16 +164,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<MainPage />} />
-        <Route
-          path="/projects"
-          element={
-            <PlaceholderPage
-              title="전체 공고"
-              description="전체 프로젝트 목록 페이지는 추후 구현 예정입니다. 메인에서 검색과 샘플 공고를 먼저 확인해 보세요."
-            />
-          }
-        />
-        <Route path="/projects/:id" element={<ProjectDetailPlaceholder />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/:id" element={<ProjectDetailPage />} />
+        <Route path="/startup" element={<Navigate to="/dashboard/company" replace />} />
         <Route
           path="/login"
           element={
@@ -163,6 +175,7 @@ export default function App() {
         />
         <Route path="/clubs" element={<StudentApplicationPage />} />
         <Route path="/student/apply" element={<StudentApplicationPage />} />
+        <Route path="/clubs/dashboard" element={<Navigate to="/dashboard/student" replace />} />
         <Route path="/dashboard/company" element={<CompanyDashboard />} />
         <Route path="/dashboard/company/club/:id" element={<ClubDetail />} />
         <Route path="/dashboard/student" element={<StudentDashboardHub />} />

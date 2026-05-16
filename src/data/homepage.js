@@ -4,12 +4,19 @@ export const homepageCopy = {
   authenticatedNavigation: [],
   headerActions: [
     { label: '로그인', variant: 'secondary', type: 'auth' },
-    { label: '스타트업용', href: '/startup', variant: 'primary', type: 'startup' },
+    { label: '스타트업용', href: '/dashboard/company', variant: 'primary', type: 'startup' },
   ],
   hero: {
     title: '스타트업과 대학 동아리/학회를 연결하는 캠퍼스 마케팅 플랫폼',
     description: '공고 등록부터 동아리 매칭, 미션 운영, 성과 리포트까지 한 번에 관리하세요.',
-    actions: [{ label: '스타트업으로 시작하기', href: '/startup', variant: 'primary' }],
+    actions: [
+      {
+        label: '스타트업으로 시작하기',
+        href: '/dashboard/company',
+        variant: 'primary',
+        type: 'startup',
+      },
+    ],
   },
   valueSection: {
     eyebrow: 'Problem / Value',
@@ -66,7 +73,8 @@ export const homepageCopy = {
       title: '캠퍼스 마케팅을 빠르게 시작하세요',
       description: '검증된 학생 조직과 연결해 대학생 타깃 캠페인을 작게 시작하고 명확하게 관리하세요.',
       buttonLabel: '스타트업용으로 이동',
-      href: '/startup',
+      href: '/dashboard/company',
+      type: 'startup',
     },
     {
       audience: '동아리/학회용',
@@ -115,7 +123,10 @@ export const homepageCopy = {
     closeLabel: '닫기',
     logoutLabel: '로그아웃',
     dashboardLabel: '대시보드',
+    loginRequiredMessage: '스타트업 대시보드는 로그인 후 이용할 수 있습니다.',
+    studentLoginRequiredMessage: '학생 대시보드는 로그인 후 이용할 수 있습니다.',
     startupOnlyMessage: '스타트업용 계정이 아닙니다.',
+    studentOnlyMessage: '동아리/학회용 계정이 아닙니다.',
     loginSuccess: '로그인되었습니다.',
     signupSuccess: '회원가입 확인 메일을 확인해 주세요.',
   },

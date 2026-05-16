@@ -5,8 +5,8 @@ export default function Header({
   isAuthenticated = false,
   userEmail = '',
   accountType = null,
-  onLoginClick,
-  onLogoutClick,
+  onLoginClick = () => {},
+  onLogoutClick = () => {},
   onStartupClick,
   extraHeaderActions = null,
   hideDashboardButton = false,
@@ -67,20 +67,30 @@ export default function Header({
           }
 
           if (action.type === 'startup') {
-            return (
+            return onStartupClick ? (
               <button
                 key={action.type}
                 className={`button button-${action.variant}`}
                 type="button"
                 onClick={onStartupClick}
                 aria-label={
-                  accountType === 'startup'
+                  !isAuthenticated
+                    ? copy.auth.loginRequiredMessage
+                    : accountType === 'startup'
                     ? action.label
                     : copy.auth.startupOnlyMessage
                 }
               >
                 {action.label}
               </button>
+            ) : (
+              <Link
+                key={action.href}
+                className={`button button-${action.variant}`}
+                to={action.href}
+              >
+                {action.label}
+              </Link>
             );
           }
 

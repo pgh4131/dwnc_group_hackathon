@@ -10,15 +10,20 @@ export default function UserTypeCTASection({ cards, onStartupClick }) {
               <span>{card.audience}</span>
               <h2>{card.title}</h2>
               <p>{card.description}</p>
-              {card.href === '/startup' && onStartupClick ? (
-                <button type="button" className="button button-primary" onClick={onStartupClick}>
-                  {card.buttonLabel}
-                </button>
-              ) : (
-                <Link className="button button-primary" to={card.href}>
-                  {card.buttonLabel}
-                </Link>
-              )}
+              <Link
+                className="button button-primary"
+                to={card.href}
+                onClick={
+                  card.type === 'startup' && onStartupClick
+                    ? (event) => {
+                        event.preventDefault();
+                        onStartupClick(event);
+                      }
+                    : undefined
+                }
+              >
+                {card.buttonLabel}
+              </Link>
             </article>
           ))}
         </div>
