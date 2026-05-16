@@ -13,6 +13,41 @@ import SolutionPanel from "./SolutionPanel";
 
 const LAYOUT_BREAKPOINT_PX = 768;
 
+const projectTimelineSteps = [
+  {
+    id: "kickoff",
+    status: "완료",
+    statusKey: "done",
+    period: "5.20 - 5.22",
+    title: "킥오프 및 가이드 수령",
+    description: "기업 브리프, KPI 정의, 내부 담당자 배정 완료",
+  },
+  {
+    id: "content",
+    status: "진행 중",
+    statusKey: "active",
+    period: "5.23 - 5.31",
+    title: "콘텐츠 제작 및 1차 제출",
+    description: "외부 제출 기한 5.31, 내부 검토 버퍼 2일 포함",
+  },
+  {
+    id: "campaign",
+    status: "예정",
+    statusKey: "scheduled",
+    period: "6.01 - 6.10",
+    title: "캠페인 운영 및 중간 리포트",
+    description: "노출, CTR, 전환율을 매일 업데이트하고 지연 리스크 확인",
+  },
+  {
+    id: "final",
+    status: "예정",
+    statusKey: "scheduled",
+    period: "6.11 - 6.16",
+    title: "최종 성과 제출",
+    description: "기업 승인 후 인증서 신청 가능 상태로 전환",
+  },
+];
+
 export default function ClubDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -42,7 +77,7 @@ export default function ClubDetail() {
     );
   }
 
-  const { club, statusKey, missionTitle, missionDescription, objectiveKpi, timeline } = bundle;
+  const { club, statusKey, missionTitle, missionDescription, objectiveKpi } = bundle;
   const col = clubColors[club.club_id];
   const status = statusLabel[statusKey];
 
@@ -105,27 +140,28 @@ export default function ClubDetail() {
               </p>
             ) : null}
 
-            {timeline.length > 0 ? (
-              <div style={{ marginTop: 16 }}>
-                <p className="dashboard-section-label dashboard-section-label--tight">
-                  프로젝트 일정 흐름 (Timeline)
-                </p>
-                <div className="mission-timeline-h" role="list">
-                  {timeline.map((ev) => (
-                    <button
-                      key={ev.timeline_id}
-                      type="button"
-                      className="mission-timeline-node"
-                      title={ev.description || ev.event_name}
-                    >
-                      <span className="mission-timeline-dot" aria-hidden />
-                      <span className="mission-timeline-date">{ev.event_date}</span>
-                      <span className="mission-timeline-name">{ev.event_name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            <div className="mission-timeline-section">
+              <p className="dashboard-section-label dashboard-section-label--tight">
+                프로젝트 일정 흐름 (Timeline)
+              </p>
+              <ol className="mission-timeline-v" aria-label="프로젝트 일정 흐름">
+                {projectTimelineSteps.map((step) => (
+                  <li key={step.id} className="mission-timeline-item">
+                    <span className="mission-timeline-dot" aria-hidden />
+                    <div className="mission-timeline-content">
+                      <div className="mission-timeline-meta">
+                        <span className={`mission-timeline-status mission-timeline-status--${step.statusKey}`}>
+                          {step.status}
+                        </span>
+                        <span className="mission-timeline-date">{step.period}</span>
+                      </div>
+                      <h3 className="mission-timeline-name">{step.title}</h3>
+                      <p className="mission-timeline-desc">{step.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
             <div style={{ marginTop: 16 }}>
               <p className="dashboard-section-label dashboard-section-label--tight">
