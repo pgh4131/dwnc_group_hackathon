@@ -19,6 +19,7 @@ export default function StudentDashboardHub() {
     clubName: '',
     university: '',
     owner: '',
+    description: '',
   });
 
   const handleClubSubmit = (e) => {
@@ -60,6 +61,10 @@ export default function StudentDashboardHub() {
                   <label>대표자 이름</label>
                   <input required value={clubForm.owner} onChange={e => setClubForm({...clubForm, owner: e.target.value})} placeholder="예: 김민서" />
                 </div>
+                <div className="form-group">
+                  <label>동아리/학회 소개</label>
+                  <textarea required value={clubForm.description} onChange={e => setClubForm({...clubForm, description: e.target.value})} placeholder="어떤 활동을 주로 하는지, 규모와 성격 등을 간단히 적어주세요." rows="3" />
+                </div>
                 <div className="form-actions">
                   <button type="submit" className="button button-primary">
                     {clubInfo ? '수정 완료' : '정보 등록하기'}
@@ -82,6 +87,10 @@ export default function StudentDashboardHub() {
                 <div className="info-item">
                   <span>대표자 이름</span>
                   <strong>{clubInfo.owner}</strong>
+                </div>
+                <div className="info-item">
+                  <span>동아리/학회 소개</span>
+                  <p style={{ margin: 0, color: 'var(--slate-900)', fontSize: '15px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{clubInfo.description}</p>
                 </div>
               </div>
             )}
