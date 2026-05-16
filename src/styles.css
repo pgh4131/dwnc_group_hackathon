@@ -963,6 +963,32 @@ button {
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
 }
 
+.mission-input-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.ai-recommend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 800;
+  transition: all 180ms ease;
+}
+
+.ai-recommend-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
 .form-section-heading {
   display: flex;
   gap: 16px;

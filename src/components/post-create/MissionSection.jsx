@@ -13,11 +13,20 @@ export default function MissionSection({ errors, onChange, onCheckboxChange, val
       </div>
 
       <FormField id="mainMission" label="주요 미션 설명" required error={errors.mainMission}>
+        <div className="mission-input-header">
+          <button
+            type="button"
+            className="ai-recommend-btn"
+            onClick={() => window.alert('AI 추천 기능은 추후 지원될 예정입니다.')}
+          >
+            ✨ AI로 미션 추천받기
+          </button>
+        </div>
         <textarea
           id="mainMission"
           name="mainMission"
           value={values.mainMission}
-          placeholder="예: 서비스 가입 유도 콘텐츠 3건 제작, 캠퍼스 커뮤니티 홍보, 사용성 피드백 인터뷰 10건 진행"
+          placeholder="직접 미션을 입력하거나 AI 추천을 받아보세요. 예: 서비스 가입 유도 콘텐츠 3건 제작..."
           rows="5"
           onChange={onChange}
         />
