@@ -59,7 +59,12 @@ export default function PostCreateCompletePage() {
               : '새 공고가 임시 저장소에 등록되었습니다.'}
           </p>
           <div className="complete-actions">
-            <Link className="button button-primary button-large" to="/dashboard/company">
+            {createdPost ? (
+              <Link className="button button-primary button-large" to={`/projects/${createdPost.id}`}>
+                등록한 공고 보기
+              </Link>
+            ) : null}
+            <Link className="button button-secondary button-large" to="/dashboard/company">
               스타트업 대시보드로 돌아가기
             </Link>
             <Link className="button button-secondary button-large" to="/company/posts/new">

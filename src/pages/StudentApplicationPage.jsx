@@ -1,9 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import AuthModal from '../components/AuthModal.jsx';
 import Footer from '../components/Footer.jsx';
 import FormField from '../components/post-create/FormField.jsx';
 import Header from '../components/Header.jsx';
 import { homepageCopy } from '../data/homepage.js';
-import { createStudentApplication } from '../services/studentApplicationStorage.js';
+import {
+  getAccountType,
+  getCurrentSession,
+  signOut,
+  subscribeToAuthChanges,
+} from '../services/auth.js';
+import { fetchProjectById } from '../services/projects.js';
+import {
+  createStudentApplication,
+  getStudentApplicationByProjectId,
+} from '../services/studentApplicationStorage.js';
+import {
+  getStudentClubProfile,
+  hasStudentClubProfile,
+} from '../services/studentClubProfileStorage.js';
 
 const organizationTypeOptions = [
   '마케팅 동아리',
@@ -136,11 +152,144 @@ function validateValues(values) {
   return nextErrors;
 }
 
+const formatSubmittedAt = (createdAt) => {
+  if (!createdAt) {
+    return '접수일 미정';
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(createdAt));
+};
+
+const getInitialValues = () => {
+  const clubProfile = getStudentClubProfile();
+
+  return {
+    ...initialValues,
+    officialName: clubProfile?.clubName || '',
+    school: clubProfile?.university || '',
+    representativeName: clubProfile?.owner || '',
+    introduction: clubProfile?.description || '',
+  };
+};
+
+const createProjectPlaceholder = (projectId) =>
+  projectId
+    ? {
+        id: projectId,
+        title: '선택한 공고',
+        startupName: '스타트업',
+      }
+    : null;
+
 export default function StudentApplicationPage() {
-  const [values, setValues] = useState(initialValues);
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('projectId') || '';
+  const [values, setValues] = useState(getInitialValues);
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState('');
-  const [submittedApplicationId, setSubmittedApplicationId] = useState('');
+  const [session, setSession] = useState(null);
+  const [accountType, setAccountType] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authNotice, setAuthNotice] = useState('');
+  const [hasClubProfile] = useState(() => hasStudentClubProfile());
+  const [projectState, setProjectState] = useState({
+    project: createProjectPlaceholder(projectId),
+    isLoading: false,
+    error: null,
+  });
+  const [submittedApplication, setSubmittedApplication] = useState(() =>
+    projectId ? getStudentApplicationByProjectId(projectId) : null,
+  );
+  const isSubmitted = Boolean(submittedApplication);
+  const isMissingProject = !projectId;
+  const isAuthenticated = Boolean(session);
+  const isStartupAccount = accountType === 'startup';
+  const isBlocked =
+    !isAuthenticated ||
+    isStartupAccount ||
+    !hasClubProfile ||
+    isMissingProject;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSession() {
+      const result = await getCurrentSession();
+
+      if (!isMounted) {
+        return;
+      }
+
+      setSession(result.session);
+      setAccountType(result.session?.user?.user_metadata?.account_type || null);
+      setIsAuthLoading(false);
+
+      const nextAccountType = await getAccountType(result.session);
+
+      if (isMounted) {
+        setAccountType(nextAccountType);
+      }
+    }
+
+    loadSession();
+    const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
+      setSession(nextSession);
+      setAccountType(nextSession?.user?.user_metadata?.account_type || null);
+      setIsAuthLoading(false);
+
+      const nextAccountType = await getAccountType(nextSession);
+      setAccountType(nextAccountType);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    setSubmittedApplication(projectId ? getStudentApplicationByProjectId(projectId) : null);
+
+    if (!projectId) {
+      setProjectState({
+        project: null,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
+
+    let isMounted = true;
+    setProjectState({
+      project: createProjectPlaceholder(projectId),
+      isLoading: true,
+      error: null,
+    });
+
+    async function loadProject() {
+      const result = await fetchProjectById(projectId);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setProjectState({
+        project: result.project || createProjectPlaceholder(projectId),
+        isLoading: false,
+        error: result.error,
+      });
+    }
+
+    loadProject();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId]);
 
   const completedRequiredCount = useMemo(() => {
     const textCount = requiredTextFields.filter(([field]) => String(values[field]).trim()).length;
@@ -182,42 +331,237 @@ export default function StudentApplicationPage() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (isSubmitted || isBlocked) {
+      return;
+    }
+
     const nextErrors = validateValues(values);
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
-      setSuccessMessage('');
-      setSubmittedApplicationId('');
       return;
     }
 
-    const createdApplication = createStudentApplication(values);
-    setSubmittedApplicationId(createdApplication.id);
-    setSuccessMessage(
-      '지원해주셔서 감사합니다! 신청서가 성공적으로 접수되었습니다. 기재하신 이메일 또는 전화번호를 통해 다음 절차를 안내드리겠습니다.',
+    const createdApplication = createStudentApplication(
+      values,
+      projectState.project || createProjectPlaceholder(projectId),
     );
+    setSubmittedApplication(createdApplication);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Failed to sign out.', error);
+    } finally {
+      setSession(null);
+      setAccountType(null);
+    }
+  };
+
+  const openAuthModal = (notice = '') => {
+    setAuthNotice(notice);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+    setAuthNotice('');
+  };
+
+  const heroDescription = (() => {
+    if (!isAuthenticated) {
+      return '로그인 후 동아리 정보를 등록해야 공고 지원서를 작성할 수 있습니다.';
+    }
+
+    if (isStartupAccount) {
+      return '스타트업 계정은 공고 지원서를 작성할 수 없습니다. 동아리/학회 계정으로 이용해주세요.';
+    }
+
+    if (!hasClubProfile) {
+      return '학생 대시보드에서 동아리 정보를 먼저 등록해야 공고 지원서를 작성할 수 있습니다.';
+    }
+
+    if (isMissingProject) {
+      return '지원할 공고를 먼저 선택하면 해당 공고 전용 지원서를 작성할 수 있습니다.';
+    }
+
+    if (isSubmitted) {
+      return '이 공고에 대한 지원서 접수가 완료되었습니다. 다른 공고는 각각 별도로 지원할 수 있습니다.';
+    }
+
+    return '캠페인에 참여할 동아리의 기본 정보, 활동 이력, 지원 동기를 한 번에 정리해 기업 검토자가 빠르게 판단할 수 있게 합니다.';
+  })();
+
+  const renderBlockedPanel = () => {
+    if (!isAuthenticated) {
+      return (
+        <section className="section-wrap student-application-complete">
+          <div className="complete-panel">
+            <p className="eyebrow">Login Required</p>
+            <h2>로그인 후 지원할 수 있습니다</h2>
+            <p>로그아웃 상태에서는 공고 보기만 가능합니다. 동아리/학회 계정으로 로그인한 뒤 지원해주세요.</p>
+            <div className="complete-actions">
+              <button
+                className="button button-primary button-large"
+                type="button"
+                onClick={() => openAuthModal(homepageCopy.auth.studentLoginRequiredMessage)}
+              >
+                로그인하기
+              </button>
+              <Link className="button button-secondary button-large" to="/projects">
+                공고 목록으로 돌아가기
+              </Link>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (isStartupAccount) {
+      return (
+        <section className="section-wrap student-application-complete">
+          <div className="complete-panel">
+            <p className="eyebrow">Student Account Required</p>
+            <h2>동아리 계정만 지원할 수 있습니다</h2>
+            <p>스타트업 계정은 공고를 등록하고 관리하는 용도입니다. 공고 지원은 동아리/학회 계정으로 진행해주세요.</p>
+            <div className="complete-actions">
+              <button className="button button-primary button-large" type="button" onClick={handleLogout}>
+                스타트업 계정 로그아웃
+              </button>
+              <Link className="button button-secondary button-large" to="/projects">
+                공고 목록으로 돌아가기
+              </Link>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (!hasClubProfile) {
+      return (
+        <section className="section-wrap student-application-complete">
+          <div className="complete-panel">
+            <p className="eyebrow">Profile Required</p>
+            <h2>동아리 정보를 먼저 작성해주세요</h2>
+            <p>
+              대시보드에 동아리명, 소속 대학, 대표자, 소개를 등록한 뒤 공고 지원서를 작성할 수 있습니다.
+            </p>
+            <div className="complete-actions">
+              <Link className="button button-primary button-large" to="/dashboard/student">
+                대시보드에서 정보 작성
+              </Link>
+              <Link className="button button-secondary button-large" to="/projects">
+                공고 목록으로 돌아가기
+              </Link>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (isMissingProject) {
+      return (
+        <section className="section-wrap student-application-complete">
+          <div className="complete-panel">
+            <p className="eyebrow">Project Required</p>
+            <h2>지원할 공고를 먼저 선택해주세요</h2>
+            <p>
+              지원서는 공고별로 따로 접수됩니다. 공고 상세 화면에서 지원서 작성하기를 눌러주세요.
+            </p>
+            <div className="complete-actions">
+              <Link className="button button-primary button-large" to="/projects">
+                공고 찾기
+              </Link>
+              <Link className="button button-secondary button-large" to="/dashboard/student">
+                학생 대시보드로 이동
+              </Link>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    return null;
   };
 
   return (
     <div className="app-shell">
-      <Header copy={homepageCopy} isAuthenticated={false} />
+      <Header
+        copy={homepageCopy}
+        isAuthenticated={isAuthenticated}
+        userEmail={session?.user?.email}
+        accountType={accountType}
+        onLoginClick={() => openAuthModal()}
+        onLogoutClick={handleLogout}
+      />
       <main className="post-create-page student-application-page">
         <section className="post-create-hero section-wrap">
           <div>
             <p className="eyebrow">Student / Club Application</p>
             <h1>학생·동아리 캠페인 지원서</h1>
-            <p>
-              캠페인에 참여할 동아리의 기본 정보, 활동 이력, 지원 동기를 한 번에 정리해 기업 검토자가 빠르게 판단할 수 있게 합니다.
-            </p>
+            <p>{heroDescription}</p>
           </div>
           <div className="required-progress" aria-label="필수 입력 진행률">
             <strong>
-              {completedRequiredCount}/{totalRequiredCount}
+              {isAuthLoading
+                ? '확인 중'
+                : isSubmitted
+                ? '완료'
+                : `${completedRequiredCount}/${totalRequiredCount}`}
             </strong>
-            <span>필수 항목 완료</span>
+            <span>{isSubmitted ? '지원서 제출' : projectState.project ? projectState.project.title : '필수 항목 완료'}</span>
           </div>
         </section>
 
+        {isAuthLoading ? (
+          <section className="section-wrap student-application-complete">
+            <div className="project-detail-status" role="status">
+              지원 가능 상태를 확인하는 중입니다.
+            </div>
+          </section>
+        ) : isBlocked ? (
+          renderBlockedPanel()
+        ) : isSubmitted ? (
+          <section className="section-wrap student-application-complete">
+            <div className="complete-panel">
+              <p className="eyebrow">Application Submitted</p>
+              <h2>지원이 완료되었습니다</h2>
+              <p>
+                이 공고에 대한 지원서가 접수되었습니다. 같은 공고에는 다시 제출할 수 없고,
+                다른 공고는 공고 상세에서 별도로 지원할 수 있습니다.
+              </p>
+              <dl className="student-application-receipt" aria-label="지원서 접수 정보">
+                <div>
+                  <dt>지원 공고</dt>
+                  <dd>{submittedApplication.project?.title || projectState.project?.title}</dd>
+                </div>
+                <div>
+                  <dt>접수 ID</dt>
+                  <dd>{submittedApplication.id}</dd>
+                </div>
+                <div>
+                  <dt>단체명</dt>
+                  <dd>{submittedApplication.club.officialName}</dd>
+                </div>
+                <div>
+                  <dt>접수일</dt>
+                  <dd>{formatSubmittedAt(submittedApplication.createdAt)}</dd>
+                </div>
+              </dl>
+              <div className="complete-actions">
+                <Link className="button button-primary button-large" to="/dashboard/student">
+                  학생 대시보드로 이동
+                </Link>
+                <Link className="button button-secondary button-large" to="/projects">
+                  공고 더 보기
+                </Link>
+              </div>
+            </div>
+          </section>
+        ) : (
         <section className="post-create-layout section-wrap">
           <form className="post-create-form" onSubmit={handleSubmit}>
             <section className="post-form-section" aria-labelledby="application-basic-title">
@@ -487,13 +831,6 @@ export default function StudentApplicationPage() {
                 </FormField>
               ) : null}
 
-              {successMessage ? (
-                <div className="success-message student-application-success" role="status">
-                  <p>{successMessage}</p>
-                  {submittedApplicationId ? <span>접수 ID: {submittedApplicationId}</span> : null}
-                </div>
-              ) : null}
-
               <button type="submit" className="button button-primary button-large submit-button">
                 지원서 제출하기
               </button>
@@ -517,8 +854,15 @@ export default function StudentApplicationPage() {
             </div>
           </aside>
         </section>
+        )}
       </main>
       <Footer copy={homepageCopy.footer} serviceName={homepageCopy.serviceName} />
+      <AuthModal
+        copy={homepageCopy.auth}
+        isOpen={isAuthModalOpen}
+        notice={authNotice}
+        onClose={closeAuthModal}
+      />
     </div>
   );
 }

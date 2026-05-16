@@ -1,4 +1,18 @@
 const STORAGE_KEY = 'campusBridge.campaignPosts';
+let memoryPosts = [];
+
+const getBrowserStorage = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage || null;
+  } catch (error) {
+    console.error('Failed to access localStorage.', error);
+    return null;
+  }
+};
 
 const createId = (title, createdAt) => {
   const normalizedTitle = title
@@ -14,12 +28,14 @@ const createId = (title, createdAt) => {
 };
 
 const readPosts = () => {
-  if (typeof window === 'undefined') {
-    return [];
+  const storage = getBrowserStorage();
+
+  if (!storage) {
+    return memoryPosts;
   }
 
   try {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
+    const storedValue = storage.getItem(STORAGE_KEY);
     return storedValue ? JSON.parse(storedValue) : [];
   } catch (error) {
     console.error('Failed to read campaign posts from localStorage.', error);
@@ -28,7 +44,18 @@ const readPosts = () => {
 };
 
 const writePosts = (posts) => {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  memoryPosts = posts;
+  const storage = getBrowserStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  } catch (error) {
+    console.error('Failed to write campaign posts to localStorage.', error);
+  }
 };
 
 export const campaignPostStorageKey = STORAGE_KEY;

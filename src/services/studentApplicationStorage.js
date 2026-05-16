@@ -1,4 +1,18 @@
 const STORAGE_KEY = 'campusBridge.studentApplications';
+let memoryApplications = [];
+
+const getBrowserStorage = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage || null;
+  } catch (error) {
+    console.error('Failed to access localStorage.', error);
+    return null;
+  }
+};
 
 const createId = (officialName, createdAt) => {
   const normalizedName = officialName
@@ -14,12 +28,14 @@ const createId = (officialName, createdAt) => {
 };
 
 const readApplications = () => {
-  if (typeof window === 'undefined') {
-    return [];
+  const storage = getBrowserStorage();
+
+  if (!storage) {
+    return memoryApplications;
   }
 
   try {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
+    const storedValue = storage.getItem(STORAGE_KEY);
     return storedValue ? JSON.parse(storedValue) : [];
   } catch (error) {
     console.error('Failed to read student applications from localStorage.', error);
@@ -28,18 +44,41 @@ const readApplications = () => {
 };
 
 const writeApplications = (applications) => {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
+  memoryApplications = applications;
+  const storage = getBrowserStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(applications));
+  } catch (error) {
+    console.error('Failed to write student applications to localStorage.', error);
+  }
 };
 
 export const studentApplicationStorageKey = STORAGE_KEY;
 
 export const getStudentApplications = () => readApplications();
 
-export const createStudentApplication = (values) => {
+export const getLatestStudentApplication = () => readApplications()[0] ?? null;
+
+export const getStudentApplicationByProjectId = (projectId) =>
+  readApplications().find((application) => application.project?.id === String(projectId)) ?? null;
+
+export const createStudentApplication = (values, project = null) => {
   const timestamp = new Date().toISOString();
 
   const application = {
     id: createId(values.officialName, timestamp),
+    project: project
+      ? {
+          id: String(project.id),
+          title: project.title,
+          startupName: project.startupName,
+        }
+      : null,
     club: {
       officialName: values.officialName.trim(),
       englishName: values.englishName.trim(),
@@ -77,7 +116,13 @@ export const createStudentApplication = (values) => {
   };
 
   const applications = readApplications();
-  writeApplications([application, ...applications]);
+  const nextApplications = [
+    application,
+    ...applications.filter(
+      (currentApplication) => currentApplication.project?.id !== application.project?.id,
+    ),
+  ];
+  writeApplications(nextApplications);
 
   return application;
 };
