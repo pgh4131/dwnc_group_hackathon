@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import { homepageCopy } from '../data/homepage.js';
-import { studentProjectsList } from '../data/studentDashboardData.js';
+
+// TODO: fetch projects from Supabase once club_id is resolved
+const studentProjectsList = [];
 
 const studentHeaderCopy = {
   ...homepageCopy,

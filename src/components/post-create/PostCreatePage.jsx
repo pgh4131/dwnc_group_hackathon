@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Footer from '../Footer.jsx';
 import Header from '../Header.jsx';
 import CompanyInfoSection from './CompanyInfoSection.jsx';
-import MissionSection from './MissionSection.jsx';
 import PostPreviewCard from './PostPreviewCard.jsx';
 import ProjectBasicInfoSection from './ProjectBasicInfoSection.jsx';
 import RewardAndConditionSection from './RewardAndConditionSection.jsx';
@@ -34,9 +33,6 @@ const initialValues = {
   certificate: false,
   networking: false,
   internshipLinked: false,
-  mainMission: '',
-  deliverables: [],
-  deliverableDescription: '',
   preferredQualifications: '',
   notes: '',
 };
@@ -50,7 +46,6 @@ const requiredFields = [
   ['period', '활동 기간을 입력해주세요.'],
   ['deadline', '모집 마감일을 선택해주세요.'],
   ['rewardSummary', '보상 내용을 입력해주세요.'],
-  ['mainMission', '주요 미션 설명을 입력해주세요.'],
 ];
 
 const validateValues = (values) => {
@@ -74,24 +69,34 @@ export default function PostCreatePage() {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [session, setSession] = useState(null);
   const [accountType, setAccountType] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     async function loadSession() {
-      const result = await getCurrentSession();
-      if (isMounted) {
-        setSession(result.session);
-        setAccountType(await getAccountType(result.session));
+      try {
+        const result = await getCurrentSession();
+        const nextAccountType = await getAccountType(result.session);
+        if (isMounted) {
+          setSession(result.session);
+          setAccountType(nextAccountType);
+        }
+      } finally {
+        if (isMounted) {
+          setIsAuthReady(true);
+        }
       }
     }
     loadSession();
     const unsubscribe = subscribeToAuthChanges(async (nextSession) => {
       setSession(nextSession);
       setAccountType(await getAccountType(nextSession));
+      setIsAuthReady(true);
     });
     return () => {
       isMounted = false;
@@ -144,23 +149,52 @@ export default function PostCreatePage() {
     setErrors((currentErrors) => ({ ...currentErrors, [name]: undefined }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
     const nextErrors = validateValues(values);
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       setSuccessMessage('');
+      setFormError('');
+      return;
+    }
+
+    if (!isAuthReady) {
+      setSuccessMessage('');
+      setFormError('로그인 정보를 확인하는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    if (!session) {
+      setSuccessMessage('');
+      setFormError('공고 등록은 스타트업 계정으로 로그인 후 가능합니다.');
+      return;
+    }
+
+    if (accountType !== 'startup') {
+      setSuccessMessage('');
+      setFormError(homepageCopy.auth.startupOnlyMessage);
       return;
     }
 
     setIsSubmitting(true);
-    const createdPost = createCampaignPost(values);
-    setSuccessMessage('공고가 등록되었습니다');
+    setFormError('');
 
-    window.setTimeout(() => {
-      navigate(`/company/posts/complete?id=${createdPost.id}`);
-    }, 450);
+    try {
+      const createdPost = await createCampaignPost(values, { session });
+      setSuccessMessage('공고가 등록되었습니다');
+      navigate(`/company/posts/complete?id=${createdPost.id}`, { replace: true });
+    } catch (error) {
+      setSuccessMessage('');
+      setFormError(error.message || '공고 저장 중 오류가 발생했습니다.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -200,16 +234,10 @@ export default function PostCreatePage() {
               values={values}
             />
             <RewardAndConditionSection errors={errors} onChange={handleChange} values={values} />
-            <MissionSection
-              errors={errors}
-              onChange={handleChange}
-              onCheckboxChange={handleCheckboxGroupChange}
-              values={values}
-            />
 
             <section className="post-form-section final-check" aria-labelledby="final-check-title">
               <div className="form-section-heading">
-                <span>05</span>
+                <span>04</span>
                 <div>
                   <h2 id="final-check-title">최종 확인</h2>
                   <p>등록 후 학생용 상세 페이지와 메인 공고 카드에서 재사용될 정보입니다.</p>
@@ -217,9 +245,14 @@ export default function PostCreatePage() {
               </div>
               <div className="final-check-grid">
                 <span>공고 상태: 모집중</span>
-                <span>저장 방식: localStorage mock</span>
+                <span>저장 방식: Supabase DB</span>
                 <span>상세 연결: /projects/[id] 예정</span>
               </div>
+              {formError ? (
+                <p className="auth-message auth-error" role="alert">
+                  {formError}
+                </p>
+              ) : null}
               {successMessage ? (
                 <p className="success-message" role="status">
                   {successMessage}

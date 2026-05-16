@@ -3,56 +3,32 @@ import { useParams, useNavigate } from "react-router-dom";
 import Header from "../Header.jsx";
 import { homepageCopy } from "../../data/homepage.js";
 import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from "../../services/auth.js";
-import {
-  clubColors,
-  statusLabel,
-  getClubDashboardBundle,
-  DEFAULT_COMPANY_ID,
-} from "../../data/dashboardData";
+import { fetchCompanyByOwner, fetchClubDashboardBundle } from "../../services/companies.js";
 import MetricCharts from "./MetricCharts";
 import SolutionPanel from "./SolutionPanel";
 
 const LAYOUT_BREAKPOINT_PX = 768;
 
-const projectTimelineSteps = [
-  {
-    id: "kickoff",
-    status: "완료",
-    statusKey: "done",
-    period: "5.20 - 5.22",
-    title: "킥오프 및 가이드 수령",
-    description: "기업 브리프, KPI 정의, 내부 담당자 배정 완료",
-  },
-  {
-    id: "content",
-    status: "진행 중",
-    statusKey: "active",
-    period: "5.23 - 5.31",
-    title: "콘텐츠 제작 및 1차 제출",
-    description: "외부 제출 기한 5.31, 내부 검토 버퍼 2일 포함",
-  },
-  {
-    id: "campaign",
-    status: "예정",
-    statusKey: "scheduled",
-    period: "6.01 - 6.10",
-    title: "캠페인 운영 및 중간 리포트",
-    description: "노출, CTR, 전환율을 매일 업데이트하고 지연 리스크 확인",
-  },
-  {
-    id: "final",
-    status: "예정",
-    statusKey: "scheduled",
-    period: "6.11 - 6.16",
-    title: "최종 성과 제출",
-    description: "기업 승인 후 인증서 신청 가능 상태로 전환",
-  },
-];
+const statusLabel = {
+  in_progress: { label: "진행 중", bg: "#eef2ff", color: "#4f46e5" },
+  pending_review: { label: "검토 중", bg: "#f8fafc", color: "#64748b" },
+  scheduled: { label: "예정", bg: "#f8fafc", color: "#64748b" },
+  completed: { label: "완료", bg: "#f8fafc", color: "#334155" },
+};
+
+function getColor(clubId) {
+  const palette = [
+    { bg: "#eef2ff", text: "#4f46e5", line: "#2563eb" },
+    { bg: "#f8fafc", text: "#2563eb", line: "#4f46e5" },
+    { bg: "#f0fdf4", text: "#16a34a", line: "#22c55e" },
+    { bg: "#fff7ed", text: "#ea580c", line: "#f97316" },
+  ];
+  return palette[(clubId || 0) % palette.length];
+}
 
 export default function ClubDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const bundle = getClubDashboardBundle(Number(id), DEFAULT_COMPANY_ID);
 
   const [isNarrow, setIsNarrow] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth <= LAYOUT_BREAKPOINT_PX : false,
@@ -60,6 +36,8 @@ export default function ClubDetail() {
 
   const [session, setSession] = useState(null);
   const [accountType, setAccountType] = useState(null);
+  const [bundle, setBundle] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [assignedMissions, setAssignedMissions] = useState([]);
 
   useEffect(() => {
@@ -91,6 +69,22 @@ export default function ClubDetail() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!session) return;
+    let isMounted = true;
+    async function loadBundle() {
+      const { company } = await fetchCompanyByOwner();
+      if (!isMounted || !company) { setLoading(false); return; }
+      const data = await fetchClubDashboardBundle(Number(id), company.company_id);
+      if (isMounted) {
+        setBundle(data);
+        setLoading(false);
+      }
+    }
+    loadBundle();
+    return () => { isMounted = false; };
+  }, [session, id]);
+
   const handleLogout = async () => {
     await signOut();
     setSession(null);
@@ -103,17 +97,26 @@ export default function ClubDetail() {
     headerActions: homepageCopy.headerActions.filter(action => action.type !== 'startup')
   };
 
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-header-shell">
+          <Header copy={companyHeaderCopy} isAuthenticated={Boolean(session)} userEmail={session?.user?.email}
+            accountType={accountType} onLogoutClick={handleLogout} hideDashboardButton={true} />
+        </div>
+        <main className="section-wrap dashboard-main" style={{ textAlign: 'center', padding: '48px' }}>
+          <p className="dashboard-lead">데이터를 불러오는 중입니다...</p>
+        </main>
+      </div>
+    );
+  }
+
   if (!bundle) {
     return (
       <div className="dashboard-page">
         <div className="dashboard-header-shell">
-          <Header 
-            copy={companyHeaderCopy} 
-            isAuthenticated={Boolean(session)} 
-            userEmail={session?.user?.email}
-            accountType={accountType}
-            onLogoutClick={handleLogout}
-          />
+          <Header copy={companyHeaderCopy} isAuthenticated={Boolean(session)} userEmail={session?.user?.email}
+            accountType={accountType} onLogoutClick={handleLogout} />
         </div>
         <main className="section-wrap dashboard-main dashboard-body-muted">동아리를 찾을 수 없습니다.</main>
       </div>
@@ -121,8 +124,8 @@ export default function ClubDetail() {
   }
 
   const { club, statusKey, missionTitle, missionDescription, objectiveKpi } = bundle;
-  const col = clubColors[club.club_id];
-  const status = statusLabel[statusKey];
+  const col = getColor(club.club_id);
+  const status = statusLabel[statusKey] || statusLabel.in_progress;
 
   const gridStyle = {
     display: "grid",
@@ -131,17 +134,20 @@ export default function ClubDetail() {
     alignItems: "start",
   };
 
+  const timelineSteps = (bundle.timeline || []).map((t) => ({
+    id: t.timeline_id,
+    status: t.event_name,
+    statusKey: "active",
+    period: t.event_date,
+    title: t.event_name,
+    description: t.description || "",
+  }));
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-header-shell">
-        <Header 
-          copy={companyHeaderCopy} 
-          isAuthenticated={Boolean(session)} 
-          userEmail={session?.user?.email}
-          accountType={accountType}
-          onLogoutClick={handleLogout}
-          hideDashboardButton={true}
-        />
+        <Header copy={companyHeaderCopy} isAuthenticated={Boolean(session)} userEmail={session?.user?.email}
+          accountType={accountType} onLogoutClick={handleLogout} hideDashboardButton={true} />
       </div>
 
       <main className="section-wrap dashboard-main">
@@ -150,13 +156,7 @@ export default function ClubDetail() {
         </button>
 
         <div className="dashboard-club-heading">
-          <div
-            className="dashboard-avatar dashboard-avatar--lg"
-            style={{
-              background: col.bg,
-              color: col.text,
-            }}
-          >
+          <div className="dashboard-avatar dashboard-avatar--lg" style={{ background: col.bg, color: col.text }}>
             {club.initials}
           </div>
           <div style={{ flex: 1 }}>
@@ -190,28 +190,30 @@ export default function ClubDetail() {
               </p>
             ) : null}
 
-            <div className="mission-timeline-section">
-              <p className="dashboard-section-label dashboard-section-label--tight">
-                프로젝트 일정 흐름 (Timeline)
-              </p>
-              <ol className="mission-timeline-v" aria-label="프로젝트 일정 흐름">
-                {projectTimelineSteps.map((step) => (
-                  <li key={step.id} className="mission-timeline-item">
-                    <span className="mission-timeline-dot" aria-hidden />
-                    <div className="mission-timeline-content">
-                      <div className="mission-timeline-meta">
-                        <span className={`mission-timeline-status mission-timeline-status--${step.statusKey}`}>
-                          {step.status}
-                        </span>
-                        <span className="mission-timeline-date">{step.period}</span>
+            {timelineSteps.length > 0 && (
+              <div className="mission-timeline-section">
+                <p className="dashboard-section-label dashboard-section-label--tight">
+                  프로젝트 일정 흐름 (Timeline)
+                </p>
+                <ol className="mission-timeline-v" aria-label="프로젝트 일정 흐름">
+                  {timelineSteps.map((step) => (
+                    <li key={step.id} className="mission-timeline-item">
+                      <span className="mission-timeline-dot" aria-hidden />
+                      <div className="mission-timeline-content">
+                        <div className="mission-timeline-meta">
+                          <span className={`mission-timeline-status mission-timeline-status--${step.statusKey}`}>
+                            {step.status}
+                          </span>
+                          <span className="mission-timeline-date">{step.period}</span>
+                        </div>
+                        <h3 className="mission-timeline-name">{step.title}</h3>
+                        <p className="mission-timeline-desc">{step.description}</p>
                       </div>
-                      <h3 className="mission-timeline-name">{step.title}</h3>
-                      <p className="mission-timeline-desc">{step.description}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
 
             <div style={{ marginTop: 16 }}>
               <p className="dashboard-section-label dashboard-section-label--tight">
@@ -223,20 +225,14 @@ export default function ClubDetail() {
                 assignedMissions.map((m) => {
                   const delayed = !m.done && m.pct > 0 && m.pct < 45;
                   return (
-                    <div
-                      key={m.id}
-                      className={`dashboard-mission-row ${delayed ? "dashboard-mission-row--delayed" : ""}`}
-                    >
+                    <div key={m.id} className={`dashboard-mission-row ${delayed ? "dashboard-mission-row--delayed" : ""}`}>
                     <div className={`dashboard-checkbox ${m.done ? "dashboard-checkbox--done" : ""}`} aria-hidden>
                       {m.done ? "✓" : ""}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div className="dashboard-mission-name">{m.name}</div>
                       <div className="dashboard-progress-track">
-                        <div
-                          className="dashboard-progress-fill"
-                          style={{ width: `${m.pct}%`, background: col.line }}
-                        />
+                        <div className="dashboard-progress-fill" style={{ width: `${m.pct}%`, background: col.line }} />
                       </div>
                     </div>
                     <span className="dashboard-mission-pct">{m.pct}%</span>

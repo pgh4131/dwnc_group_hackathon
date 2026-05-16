@@ -6,10 +6,16 @@ const supabaseKey =
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
+let browserClient = null;
+
 export const createClient = () => {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase URL and publishable key are required.');
   }
 
-  return createSupabaseClient(supabaseUrl, supabaseKey);
+  if (!browserClient) {
+    browserClient = createSupabaseClient(supabaseUrl, supabaseKey);
+  }
+
+  return browserClient;
 };

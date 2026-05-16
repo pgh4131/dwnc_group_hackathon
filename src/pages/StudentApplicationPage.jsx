@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Footer from '../components/Footer.jsx';
 import FormField from '../components/post-create/FormField.jsx';
 import Header from '../components/Header.jsx';
@@ -137,6 +138,8 @@ function validateValues(values) {
 }
 
 export default function StudentApplicationPage() {
+  const [searchParams] = useSearchParams();
+  const postId = searchParams.get('postId') || null;
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
@@ -180,7 +183,7 @@ export default function StudentApplicationPage() {
     setErrors((currentErrors) => ({ ...currentErrors, [name]: undefined }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validateValues(values);
 
@@ -191,7 +194,7 @@ export default function StudentApplicationPage() {
       return;
     }
 
-    const createdApplication = createStudentApplication(values);
+    const createdApplication = await createStudentApplication({ ...values, postId });
     setSubmittedApplicationId(createdApplication.id);
     setSuccessMessage(
       '지원해주셔서 감사합니다! 신청서가 성공적으로 접수되었습니다. 기재하신 이메일 또는 전화번호를 통해 다음 절차를 안내드리겠습니다.',

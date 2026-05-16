@@ -1,5 +1,23 @@
 import { useMemo, useRef } from "react";
-import { approvalStatusMeta, calculateMissionProgress } from "../../data/studentDashboardData.js";
+
+const approvalStatusMeta = {
+  approved: { label: "승인 완료", tone: "success" },
+  pending: { label: "승인 대기", tone: "warning" },
+  revision: { label: "수정 요청", tone: "danger" },
+  not_submitted: { label: "미제출", tone: "muted" },
+};
+
+function calculateMissionProgress(mission) {
+  const approvalTotal = mission.approvalItems?.length || 1;
+  const approvedCount = (mission.approvalItems || []).filter((item) => item.status === "approved").length;
+  const approvalProgress = Math.round((approvedCount / approvalTotal) * 100);
+  const blended = Math.round((mission.kpiProgress || 0) * 0.55 + approvalProgress * 0.45);
+  return {
+    ...mission,
+    approvalProgress,
+    overallProgress: approvalProgress < 100 ? Math.min(blended, 82) : blended,
+  };
+}
 
 function StatusBadge({ status }) {
   const meta = approvalStatusMeta[status] ?? approvalStatusMeta.not_submitted;

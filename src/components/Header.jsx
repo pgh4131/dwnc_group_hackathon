@@ -1,16 +1,59 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { getCurrentSession, getAccountType, signOut, subscribeToAuthChanges } from '../services/auth.js';
 
 export default function Header({
   copy,
-  isAuthenticated = false,
-  userEmail = '',
-  accountType = null,
+  isAuthenticated: initialIsAuth = false,
+  userEmail: initialEmail = '',
+  accountType: initialAccountType = null,
   onLoginClick = () => {},
-  onLogoutClick = () => {},
+  onLogoutClick,
   onStartupClick,
   extraHeaderActions = null,
   hideDashboardButton = false,
 }) {
+  const [session, setSession] = useState(null);
+  const [fetchedAccountType, setFetchedAccountType] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      const { session: currentSession } = await getCurrentSession();
+      if (isMounted && currentSession) {
+        setSession(currentSession);
+        setFetchedAccountType(await getAccountType(currentSession));
+      }
+    }
+    load();
+    const unsub = subscribeToAuthChanges(async (newSession) => {
+      setSession(newSession);
+      setFetchedAccountType(await getAccountType(newSession));
+    });
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, []);
+
+  const isAuthenticated = session ? true : initialIsAuth;
+  const userEmail = session?.user?.email || initialEmail;
+  const accountType = fetchedAccountType || initialAccountType;
+
+  const handleLogoutClick = async () => {
+    try {
+      if (onLogoutClick) {
+        await onLogoutClick();
+      } else {
+        await signOut();
+        window.location.href = '/';
+      }
+    } finally {
+      setSession(null);
+      setFetchedAccountType(null);
+    }
+  };
+
   const navigationItems = isAuthenticated
     ? [...copy.navigation, ...copy.authenticatedNavigation]
     : copy.navigation;
@@ -44,13 +87,25 @@ export default function Header({
         ) : null}
 
         {copy.headerActions.map((action) => {
+          if (action.type === 'startup' && accountType === 'startup') {
+            return (
+              <Link
+                key="startup-dashboard"
+                className="button button-primary"
+                to="/dashboard/company"
+              >
+                스타트업 대시보드
+              </Link>
+            );
+          }
+
           if (action.type === 'auth') {
             return isAuthenticated ? (
               <button
                 key="logout"
                 className={`button button-${action.variant}`}
                 type="button"
-                onClick={onLogoutClick}
+                onClick={handleLogoutClick}
               >
                 {copy.auth.logoutLabel}
               </button>

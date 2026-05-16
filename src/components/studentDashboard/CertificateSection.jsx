@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { studentProfile } from "../../data/studentDashboardData.js";
+
+const studentProfile = { clubName: "", companyName: "", campaignName: "" };
 
 function formatToday() {
   const today = new Date();
