@@ -76,6 +76,9 @@ export const homepageCopy = {
       'Campus Bridge는 스타트업과 대학 동아리/학회를 연결해 캠퍼스 마케팅 프로젝트를 운영하는 해커톤 MVP입니다.',
   },
   projects: {
+    searchLabel: '프로젝트 검색',
+    searchPlaceholder: '스타트업명, 분야, 프로젝트명을 검색하세요',
+    emptyMessage: '검색 결과가 없습니다. 다른 키워드로 다시 찾아보세요.',
     moreLabel: '더보기',
     moreHref: '/projects',
   },
